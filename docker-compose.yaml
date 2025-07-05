@@ -1,11 +1,31 @@
 services:
-  backend:
+  back-end:
     build:
       context: ./back-end
       dockerfile: Dockerfile
     ports:
-      - 3000:3000
+      - ${BACKEND_PORT}:${BACKEND_PORT}
     volumes:
       - ./back-end:/usr/src/TODOAPP/back-end
     working_dir: /usr/src/TODOAPP/back-end
     command: npm start
+  front-end:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    ports:
+      - ${FRONTEND_PORT}:${FRONTEND_PORT}
+    volumes:
+      - ./front-end:/usr/src/TODOAPP/front-end
+    working_dir: /usr/src/TODOAPP/front-end
+    command: npm run dev
+  database:
+    image: postgres:latest
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./database:/var/lib/postgresql/data
