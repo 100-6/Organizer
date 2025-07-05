@@ -1,0 +1,11 @@
+services:
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    volumes:
+      - ./back-end:/usr/src/TODOAPP/back-end
+    working_dir: /usr/src/TODOAPP/back-end
+    command: npm start
