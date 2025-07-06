@@ -3,6 +3,8 @@ services:
     build:
       context: ./back-end
       dockerfile: Dockerfile
+    depends_on:
+      - database
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     environment:
@@ -16,13 +18,16 @@ services:
     build:
       context: ./front-end
       dockerfile: Dockerfile
+    depends_on:
+      - back-end
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
       - FRONTEND_PORT=${FRONTEND_PORT}
     volumes:
-      - ./front-end:/app
-    working_dir: /app
+      - ./front-end:/usr/src/TODOAPP/front-end
+      - /usr/src/TODOAPP/front-end/node_modules
+    working_dir: /usr/src/TODOAPP/front-end
 
   database:
     image: postgres:latest
@@ -35,6 +40,7 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
 
 volumes:
   postgres_data:
