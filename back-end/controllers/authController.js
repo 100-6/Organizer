@@ -160,19 +160,6 @@ const refreshToken = async (req, res) => {
     }
 };
 
-const getProfile = async (req, res) => {
-    try {
-        res.json({
-            user: req.user
-        });
-    } catch (error) {
-        console.error('Erreur lors de la récupération du profil:', error);
-        res.status(500).json({
-            error: 'Erreur interne du serveur'
-        });
-    }
-};
-
 const logout = async (req, res) => {
     res.json({
         message: 'Déconnexion réussie'
