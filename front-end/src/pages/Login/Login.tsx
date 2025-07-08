@@ -26,11 +26,6 @@ const Login = () => {
     setIsLoading(true)
     setError('')
 
-    const fullUrl = `${window.location.origin}/api/auth/login`
-    console.log('🌐 FRONT-END REQUEST TO:', fullUrl)
-    console.log('📍 Current URL:', window.location.href)
-    console.log('🏠 Origin:', window.location.origin)
-
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -51,7 +46,6 @@ const Login = () => {
         setError(data.error || 'Erreur de connexion')
       }
     } catch (err) {
-      console.error('❌ ERROR:', err)
       setError('Erreur de connexion au serveur')
     } finally {
       setIsLoading(false)
@@ -59,68 +53,70 @@ const Login = () => {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-content">
-          <Link to="/" className="back-home">
-            ← Retour à l'accueil
-          </Link>
-          <div className="auth-form-container">
-            <div className="auth-form-header">
-              <h1>Connexion</h1>
-              <p>Connectez-vous à votre compte pour continuer</p>
-            </div>
-
-            {error && (
-              <div className="auth-error">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="votre@email.com"
-                />
+    <div>
+      <div className="header-content">
+        <Link to="/" className="logo">Organizer</Link>
+      </div>
+      <div className="auth-page">
+        <div className="auth-container">
+          <div className="auth-content">
+            <div className="auth-form-container">
+              <div className="auth-form-header">
+                <h1>Connexion</h1>
+                <p>Connectez-vous à votre compte pour continuer</p>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="password">Mot de passe</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="••••••••"
-                />
+              {error && (
+                <div className="auth-error">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="auth-form">
+                <div className="form-group">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="M@email.com"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="password">Mot de passe</label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  size="large"
+                  disabled={isLoading}
+                >
+                  <span>{isLoading ? 'Connexion...' : 'Se connecter'}</span>
+                </Button>
+              </form>
+
+              <div className="auth-footer">
+                <p>
+                  Pas encore de compte ? {' '}
+                  <Link to="/register" className="auth-link">
+                    Créer un compte
+                  </Link>
+                </p>
               </div>
-
-              <Button 
-                type="submit" 
-                variant="primary" 
-                size="large"
-                disabled={isLoading}
-              >
-                <span>{isLoading ? 'Connexion...' : 'Se connecter'}</span>
-              </Button>
-            </form>
-
-            <div className="auth-footer">
-              <p>
-                Pas encore de compte ? {' '}
-                <Link to="/register" className="auth-link">
-                  Créer un compte
-                </Link>
-              </p>
             </div>
           </div>
         </div>

@@ -34,11 +34,6 @@ const Register = () => {
       return
     }
 
-    const fullUrl = `${window.location.origin}/api/auth/register`
-    console.log('🌐 FRONT-END REQUEST TO:', fullUrl)
-    console.log('📍 Current URL:', window.location.href)
-    console.log('🏠 Origin:', window.location.origin)
-
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -63,7 +58,6 @@ const Register = () => {
         setError(data.error || 'Erreur lors de la création du compte')
       }
     } catch (err) {
-      console.error('❌ ERROR:', err)
       setError('Erreur de connexion au serveur')
     } finally {
       setIsLoading(false)
@@ -71,94 +65,96 @@ const Register = () => {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-content">
-          <Link to="/" className="back-home">
-            ← Retour à l'accueil
-          </Link>
-          <div className="auth-form-container">
-            <div className="auth-form-header">
-              <h1>Créer un compte</h1>
-              <p>Commencez à organiser vos tâches dès maintenant</p>
-            </div>
-
-            {error && (
-              <div className="auth-error">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="username">Nom d'utilisateur</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="votre_nom"
-                />
+    <div>
+      <div className="header-content">
+        <Link to="/" className="logo">Organizer</Link>
+      </div>
+      <div className="auth-page">
+        <div className="auth-container">
+          <div className="auth-content">
+            <div className="auth-form-container">
+              <div className="auth-form-header">
+                <h1>Créer un compte</h1>
+                <p>Commencez à organiser vos tâches dès maintenant</p>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="votre@email.com"
-                />
+              {error && (
+                <div className="auth-error">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="auth-form">
+                <div className="form-group">
+                  <label htmlFor="username">Nom d'utilisateur</label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Nom d'utilisateur"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="m@email.com"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="password">Mot de passe</label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  size="large"
+                  disabled={isLoading}
+                >
+                  <span>{isLoading ? 'Création...' : 'Créer le compte'}</span>
+                </Button>
+              </form>
+
+              <div className="auth-footer">
+                <p>
+                  Déjà un compte ? {' '}
+                  <Link to="/login" className="auth-link">
+                    Se connecter
+                  </Link>
+                </p>
               </div>
-
-              <div className="form-group">
-                <label htmlFor="password">Mot de passe</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                variant="primary" 
-                size="large"
-                disabled={isLoading}
-              >
-                <span>{isLoading ? 'Création...' : 'Créer le compte'}</span>
-              </Button>
-            </form>
-
-            <div className="auth-footer">
-              <p>
-                Déjà un compte ? {' '}
-                <Link to="/login" className="auth-link">
-                  Se connecter
-                </Link>
-              </p>
             </div>
           </div>
         </div>
