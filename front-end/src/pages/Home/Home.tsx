@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Button from '../../components/Button/Button'
 import './Home.css'
 
@@ -10,6 +11,7 @@ interface TodoItem {
 }
 
 const Home = () => {
+  const navigate = useNavigate()
   const [todos, setTodos] = useState<TodoItem[]>([
     { id: 1, text: "Réviser la présentation client", completed: true, priority: 'high' },
     { id: 2, text: "Appeler le service technique", completed: false, priority: 'medium' },
@@ -19,7 +21,7 @@ const Home = () => {
   ])
 
   const handleGetStarted = () => {
-    console.log('Commencer !')
+    navigate('/register')
   }
 
   const handleTodoToggle = (id: number) => {
@@ -31,11 +33,11 @@ const Home = () => {
   }
 
   const handleLogin = () => {
-    console.log('Login clicked')
+    navigate('/login')
   }
 
   const handleSignUp = () => {
-    console.log('Sign Up clicked')
+    navigate('/register')
   }
 
   return (
