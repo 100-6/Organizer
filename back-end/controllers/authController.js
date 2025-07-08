@@ -170,6 +170,5 @@ module.exports = {
     register,
     login,
     refreshToken,
-    getProfile,
     logout
 };
