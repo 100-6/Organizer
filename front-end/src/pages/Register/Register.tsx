@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import Button from '../../components/Button/Button'
-import './Register.css'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { AuthForm, FormInput, Button } from '../../components'
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +13,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -50,9 +51,7 @@ const Register = () => {
       const data = await response.json()
 
       if (response.ok) {
-        localStorage.setItem('accessToken', data.accessToken)
-        localStorage.setItem('refreshToken', data.refreshToken)
-        localStorage.setItem('user', JSON.stringify(data.user))
+        login(data.accessToken, data.refreshToken, data.user)
         navigate('/dashboard')
       } else {
         setError(data.error || 'Erreur lors de la création du compte')
@@ -65,101 +64,70 @@ const Register = () => {
   }
 
   return (
-    <div>
-      <div className="header-content">
-        <Link to="/" className="logo">Organizer</Link>
-      </div>
-      <div className="auth-page">
-        <div className="auth-container">
-          <div className="auth-content">
-            <div className="auth-form-container">
-              <div className="auth-form-header">
-                <h1>Créer un compte</h1>
-                <p>Commencez à organiser vos tâches dès maintenant</p>
-              </div>
+    <AuthForm
+      title="Créer un compte"
+      subtitle="Commencez à organiser vos tâches dès maintenant"
+      error={error}
+      onSubmit={handleSubmit}
+      footer={{
+        text: "Déjà un compte ?",
+        linkText: "Se connecter",
+        linkTo: "/login"
+      }}
+    >
+      <FormInput
+        label="Nom d'utilisateur"
+        type="text"
+        id="username"
+        name="username"
+        value={formData.username}
+        onChange={handleInputChange}
+        placeholder="Nom d'utilisateur"
+        required
+      />
 
-              {error && (
-                <div className="auth-error">
-                  {error}
-                </div>
-              )}
+      <FormInput
+        label="Email"
+        type="email"
+        id="email"
+        name="email"
+        value={formData.email}
+        onChange={handleInputChange}
+        placeholder="m@email.com"
+        required
+      />
 
-              <form onSubmit={handleSubmit} className="auth-form">
-                <div className="form-group">
-                  <label htmlFor="username">Nom d'utilisateur</label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Nom d'utilisateur"
-                  />
-                </div>
+      <FormInput
+        label="Mot de passe"
+        type="password"
+        id="password"
+        name="password"
+        value={formData.password}
+        onChange={handleInputChange}
+        placeholder="••••••••"
+        required
+      />
 
-                <div className="form-group">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="m@email.com"
-                  />
-                </div>
+      <FormInput
+        label="Confirmer le mot de passe"
+        type="password"
+        id="confirmPassword"
+        name="confirmPassword"
+        value={formData.confirmPassword}
+        onChange={handleInputChange}
+        placeholder="••••••••"
+        required
+      />
 
-                <div className="form-group">
-                  <label htmlFor="password">Mot de passe</label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                <Button 
-                  type="submit" 
-                  variant="primary" 
-                  size="large"
-                  disabled={isLoading}
-                >
-                  <span>{isLoading ? 'Création...' : 'Créer le compte'}</span>
-                </Button>
-              </form>
-
-              <div className="auth-footer">
-                <p>
-                  Déjà un compte ? {' '}
-                  <Link to="/login" className="auth-link">
-                    Se connecter
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Button 
+        type="submit" 
+        variant="primary" 
+        size="large"
+        disabled={isLoading}
+      >
+        <span>{isLoading ? 'Création...' : 'Créer le compte'}</span>
+      </Button>
+    </AuthForm>
   )
 }
 

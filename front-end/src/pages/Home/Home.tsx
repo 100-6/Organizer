@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Button from '../../components/Button/Button'
+import { useAuth } from '../../contexts/AuthContext'
+import { LoadingSpinner, Button } from '../../components'
 import './Home.css'
 
 interface TodoItem {
@@ -12,6 +13,7 @@ interface TodoItem {
 
 const Home = () => {
   const navigate = useNavigate()
+  const { isAuthenticated, isLoading } = useAuth()
   const [todos, setTodos] = useState<TodoItem[]>([
     { id: 1, text: "Réviser la présentation client", completed: true, priority: 'high' },
     { id: 2, text: "Appeler le service technique", completed: false, priority: 'medium' },
@@ -21,7 +23,11 @@ const Home = () => {
   ])
 
   const handleGetStarted = () => {
-    navigate('/register')
+    if (isAuthenticated) {
+      navigate('/dashboard')
+    } else {
+      navigate('/register')
+    }
   }
 
   const handleTodoToggle = (id: number) => {
@@ -33,31 +39,47 @@ const Home = () => {
   }
 
   const handleLogin = () => {
-    navigate('/login')
+    if (isAuthenticated) {
+      navigate('/dashboard')
+    } else {
+      navigate('/login')
+    }
   }
 
   const handleSignUp = () => {
-    navigate('/register')
+    if (isAuthenticated) {
+      navigate('/dashboard')
+    } else {
+      navigate('/register')
+    }
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner message="Chargement..." fullScreen />
   }
 
   return (
     <div className="modern-page">
-        <div className="header-content">
-          <div className="logo">Organizer</div>
-          <div className="header-buttons">
-            <button className="login-button" onClick={handleLogin}>
-              Login
-            </button>
-            <Button variant="primary" size="small" onClick={handleSignUp}>
-              Sign Up
-            </Button>
-          </div>
+      <div className="header-content">
+        <div className="logo">Organizer</div>
+        <div className="header-buttons">
+          <button className="login-button" onClick={handleLogin}>
+            Login
+          </button>
+          <Button variant="primary" size="small" onClick={handleSignUp}>
+            Sign Up
+          </Button>
         </div>
+      </div>
+      
       <main className="modern-main">
         <section className="modern-hero">
           <div className="container">
             <h1 className="fade-in">Organisez votre journée avec élégance</h1>
-            <p className="fade-in">Une approche simple et raffinée pour gérer vos tâches quotidiennes. Concentrez-vous sur l'essentiel.</p>
+            <p className="fade-in">
+              Une approche simple et raffinée pour gérer vos tâches quotidiennes. 
+              Concentrez-vous sur l'essentiel.
+            </p>
             
             <button className="cssbuttons-io fade-in" onClick={handleGetStarted}>
               <span>
