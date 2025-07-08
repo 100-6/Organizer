@@ -1,0 +1,99 @@
+.btn {
+    border: none;
+    border-radius: 25px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+    border-radius: 25px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .btn:hover::before {
+    opacity: 1;
+  }
+  
+  .btn--small {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .btn--medium {
+    padding: 1rem 2.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .btn--large {
+    padding: 1.25rem 3rem;
+    font-size: 1rem;
+  }
+  
+  .btn--primary {
+    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      0 10px 25px rgba(0, 0, 0, 0.3),
+      0 4px 10px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  
+  .btn--primary:hover:not(.btn--disabled) {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.4),
+      0 6px 15px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  
+  .btn--secondary {
+    background: transparent;
+    color: #646cff;
+    border: 1px solid #646cff;
+    box-shadow: 0 4px 15px rgba(100, 108, 255, 0.2);
+  }
+  
+  .btn--secondary:hover:not(.btn--disabled) {
+    background: #646cff;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(100, 108, 255, 0.4);
+  }
+  
+  .btn--danger {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    color: white;
+    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+  }
+  
+  .btn--danger:hover:not(.btn--disabled) {
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(220, 38, 38, 0.4);
+  }
+  
+  .btn--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }

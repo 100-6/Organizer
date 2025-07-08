@@ -1,0 +1,15 @@
+.about {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  .about h1 {
+    color: rgba(255, 255, 255, 0.87);
+    margin-bottom: 1rem;
+  }
+  
+  .about p {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+  }
