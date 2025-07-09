@@ -44,7 +44,7 @@ const CreateLabelModal = ({
     
     try {
       await onSubmit({
-        name: formData.name.trim() || null,
+        name: formData.name.trim(),
         color: formData.color
       })
       

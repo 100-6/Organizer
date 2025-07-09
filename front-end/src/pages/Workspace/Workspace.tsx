@@ -92,6 +92,7 @@ const Workspace = () => {
   
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [isCreatingList, setIsCreatingList] = useState(false)
+  const [showLabelManagerModal, setShowLabelManagerModal] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -352,6 +353,7 @@ const Workspace = () => {
           onCreateLabel={() => setShowCreateLabelModal(true)}
           onAddMember={() => {}}
           onSettings={() => {}}
+          onManageLabels={() => setShowLabelManagerModal(true)}
         />
 
         <main className="workspace-main">
@@ -382,6 +384,7 @@ const Workspace = () => {
                   onDeleteTodo={handleDeleteTodo}
                   onDeleteList={() => handleDeleteList(list.id)}
                   onMoveTodo={handleMoveTodo}
+                  onListNameUpdated={fetchWorkspaceData}
                 />
               ))}
               
@@ -465,6 +468,16 @@ const Workspace = () => {
           onClose={() => setShowCreateLabelModal(false)}
           onSubmit={handleCreateLabel}
         />
+        {showLabelManagerModal && (
+          <LabelManagerModal
+            isOpen={showLabelManagerModal}
+            onClose={() => setShowLabelManagerModal(false)}
+            labels={labels}
+            onLabelUpdated={async () => await fetchWorkspaceData()}
+            onLabelDeleted={async () => await fetchWorkspaceData()}
+            workspaceId={id}
+          />
+        )}
       </div>
     </DndProvider>
   )

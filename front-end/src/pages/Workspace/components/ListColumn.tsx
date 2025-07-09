@@ -46,6 +46,7 @@ interface ListColumnProps {
   onDeleteTodo: (todoId: number) => void
   onDeleteList: () => void
   onMoveTodo: (todoId: number, targetListId: number) => void
+  onListNameUpdated?: () => void
 }
 
 const ListColumn = ({
@@ -56,7 +57,8 @@ const ListColumn = ({
   onEditTodo,
   onDeleteTodo,
   onDeleteList,
-  onMoveTodo
+  onMoveTodo,
+  onListNameUpdated
 }: ListColumnProps) => {
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -77,8 +79,22 @@ const ListColumn = ({
 
   const handleSaveName = async () => {
     if (editName.trim() && editName !== list.name) {
-      // TODO: Implement list name update
-      console.log('Update list name:', editName)
+      try {
+        const token = localStorage.getItem('accessToken')
+        const response = await fetch(`/api/lists/${list.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ name: editName })
+        })
+        if (response.ok && onListNameUpdated) {
+          onListNameUpdated()
+        }
+      } catch (err) {
+        // Optionally handle error
+      }
     }
     setIsEditing(false)
   }

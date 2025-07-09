@@ -6,6 +6,7 @@ import Login from './pages/Login/Login'
 import Register from './pages/Register/Register'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Profile from './pages/Profile/Profile'
+import Workspace from './pages/Workspace/Workspace'
 import './App.css'
 
 function App() {
@@ -29,6 +30,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/workspace/:id" 
+            element={
+              <ProtectedRoute>
+                <Workspace />
               </ProtectedRoute>
             } 
           />

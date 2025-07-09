@@ -1,0 +1,89 @@
+.label-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.label-manager-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.label-color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-block;
+  border: 2px solid #e5e7eb;
+}
+
+.label-name {
+  font-weight: 500;
+  color: #1a1a1a;
+  min-width: 80px;
+}
+
+.edit-label-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.color-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.color-option {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.color-option--selected {
+  border-color: #10b981;
+}
+
+.custom-color-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-color-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.custom-color-input {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.alert-error {
+  color: #dc2626;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 14px;
+} 

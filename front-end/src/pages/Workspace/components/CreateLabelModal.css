@@ -1,0 +1,91 @@
+.create-label-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.color-section {
+  margin-top: 12px;
+}
+
+.color-preview {
+  margin-bottom: 8px;
+}
+
+.color-preview-box {
+  width: 48px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #fff;
+  font-size: 13px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+
+.color-preview-text {
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.color-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.color-option {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.color-option--selected {
+  border-color: #10b981;
+}
+
+.custom-color-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.custom-color-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.custom-color-input {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.label-info {
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.label-info-text {
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+} 
