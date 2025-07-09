@@ -1,0 +1,226 @@
+.workspace-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  
+  .workspace-header-content {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  
+  .workspace-header-left {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .workspace-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .breadcrumb-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+  
+  .breadcrumb-link:hover {
+    color: #10b981;
+  }
+  
+  .breadcrumb-separator {
+    color: #9ca3af;
+    font-size: 14px;
+  }
+  
+  .breadcrumb-current {
+    color: #1a1a1a;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .workspace-info {
+    min-width: 0;
+  }
+  
+  .workspace-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  
+  .workspace-description {
+    color: #6b7280;
+    font-size: 16px;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+  }
+  
+  .workspace-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 14px;
+    color: #9ca3af;
+  }
+  
+  .workspace-created,
+  .workspace-members-count {
+    font-weight: 500;
+  }
+  
+  .workspace-header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+  
+  .workspace-members {
+    display: flex;
+    align-items: center;
+    gap: -4px;
+  }
+  
+  .member-avatar-container {
+    position: relative;
+    margin-left: -4px;
+  }
+  
+  .member-avatar-container:first-child {
+    margin-left: 0;
+  }
+  
+  .member-tooltip {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 1000;
+    margin-top: 8px;
+  }
+  
+  .member-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-bottom-color: #1a1a1a;
+  }
+  
+  .member-avatar-container:hover .member-tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .member-name {
+    font-weight: 500;
+    display: block;
+  }
+  
+  .member-role {
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: capitalize;
+  }
+  
+  .members-overflow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: -4px;
+    border: 2px solid white;
+  }
+  
+  .workspace-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .workspace-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  
+  @media (max-width: 1024px) {
+    .workspace-header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    
+    .workspace-header-right {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .workspace-actions {
+      flex-wrap: wrap;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .workspace-header {
+      padding: 16px 0;
+    }
+    
+    .workspace-header-content {
+      padding: 0 16px;
+    }
+    
+    .workspace-title {
+      font-size: 24px;
+    }
+    
+    .workspace-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    
+    .workspace-actions .btn {
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+  }

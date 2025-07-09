@@ -7,21 +7,22 @@
   .workspace-card-new {
     width: 100%;
     height: 100%;
-    border-radius: 15px;
-    background: var(--workspace-color-light, rgba(16, 185, 129, 0.08));
+    border-radius: 12px;
+    background: #ffffff;
     display: flex;
     flex-direction: column;
     position: relative;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.3s ease;
-    border: 1px solid var(--workspace-color-medium, rgba(16, 185, 129, 0.15));
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
   
   .workspace-card-new:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 32px var(--workspace-color-medium, rgba(16, 185, 129, 0.2));
-    border-color: var(--workspace-color-medium, rgba(16, 185, 129, 0.3));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
   }
   
   .workspace-card-header {
@@ -41,12 +42,13 @@
   .workspace-title {
     color: #1a1a1a;
     font-weight: 600;
-    font-size: 1.2em;
+    font-size: 1.1em;
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    margin-bottom: 8px;
   }
   
   .workspace-card-icons {
@@ -56,33 +58,38 @@
   
   .workspace-menu-btn {
     border: none;
-    width: 36px;
-    height: 36px;
-    background-color: var(--workspace-color-medium, rgba(16, 185, 129, 0.1));
+    width: 32px;
+    height: 32px;
+    background-color: #f9fafb;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
   }
   
   .workspace-menu-btn:hover {
-    background-color: var(--workspace-color-medium, rgba(16, 185, 129, 0.2));
+    background-color: #f3f4f6;
     transform: scale(1.05);
   }
   
   .menu-icon {
-    stroke: var(--workspace-color, #10b981);
+    stroke: #6b7280;
     transition: all 0.2s ease;
   }
   
+  .workspace-menu-btn:hover .menu-icon {
+    stroke: #374151;
+  }
+  
   .workspace-card-footer {
-    background: white;
+    background: #f9fafb;
     padding: 16px 20px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 0 0 15px 15px;
+    border-top: 1px solid #f3f4f6;
+    border-radius: 0 0 12px 12px;
+    min-height: 70px;
   }
   
   .workspace-info-row {
@@ -97,24 +104,35 @@
     align-items: center;
     gap: 6px;
     color: #6b7280;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
   }
   
   .workspace-meta-item svg {
     color: #9ca3af;
     flex-shrink: 0;
+    width: 12px;
+    height: 12px;
   }
   
   .workspace-description {
     color: #6b7280;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.4;
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  
+  .workspace-status-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    margin-right: 8px;
+    flex-shrink: 0;
   }
   
   .workspace-menu {
@@ -124,13 +142,13 @@
     margin-top: 8px;
     width: 200px;
     background: #ffffff;
-    border-radius: 12px;
-    padding: 12px 0;
+    border-radius: 8px;
+    padding: 8px 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    gap: 2px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
     z-index: 1000;
   }
   
@@ -142,14 +160,14 @@
     width: 12px;
     height: 12px;
     background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
     border-bottom: none;
     border-right: none;
     transform: rotate(45deg);
   }
   
   .menu-separator {
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #f3f4f6;
     margin: 4px 0;
   }
   
@@ -157,43 +175,45 @@
     list-style-type: none;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 0 8px;
+    gap: 1px;
+    padding: 0 6px;
     margin: 0;
   }
   
   .menu-element {
     display: flex;
     align-items: center;
-    color: #6b7280;
+    color: #4b5563;
     gap: 12px;
     transition: all 0.2s ease;
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
   }
   
   .menu-element svg {
-    width: 19px;
-    height: 19px;
+    width: 16px;
+    height: 16px;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    stroke: #6b7280;
   }
   
   .menu-label {
     font-weight: 500;
     margin: 0;
+    color: #374151;
   }
   
   .menu-element:hover {
-    background-color: #f3f4f6;
-    color: #1a1a1a;
-    transform: translateX(2px);
+    background-color: #f9fafb;
+    color: #1f2937;
+    transform: translateX(1px);
   }
   
   .menu-element:hover svg {
-    stroke: #1a1a1a;
+    stroke: #374151;
   }
   
   .menu-element.delete:hover {
@@ -205,17 +225,33 @@
     stroke: #dc2626;
   }
   
+  .menu-element.delete:hover .menu-label {
+    color: #dc2626;
+  }
+  
   .menu-element.team {
-    color: #10b981;
+    color: #059669;
+  }
+  
+  .menu-element.team svg {
+    stroke: #10b981;
   }
   
   .menu-element.team:hover {
-    background-color: rgba(16, 185, 129, 0.1);
-    color: #059669;
+    background-color: #f0fdf4;
+    color: #047857;
   }
   
   .menu-element.team:hover svg {
     stroke: #059669;
+  }
+  
+  .menu-element.team .menu-label {
+    color: #059669;
+  }
+  
+  .menu-element.team:hover .menu-label {
+    color: #047857;
   }
   
   .menu-element:active {
