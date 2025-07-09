@@ -1,202 +1,25 @@
-  .home-loading {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #fafafa;
-    color: #6b7280;
+/* front-end/src/pages/Home/Home.css */
+.demo-section-header {
+    text-align: center;
+    margin-bottom: 64px;
   }
-
-  .auth-loading {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #fafafa;
-    color: #6b7280;
-  }
-
-  .modern-page {
-    min-height: 100vh;
-    width: 100vw;
-    background: #fafafa;
-    overflow-x: hidden;
-    margin: 0;
-    padding: 0;
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-
-  .modern-header {
-    background: transparent;
-    position: relative;
-    padding: 24px 0;
-  }
-
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: auto;
-  }
-
-  .modern-page {
-    min-height: 100vh;
-    width: 100vw;
-    background: #fafafa;
-    overflow-x: hidden;
-    margin: 0;
-    padding: 0;
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 24px;
-    width: 100%;
-  }
-
-  .modern-header {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    z-index: 100;
-  }
-
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 72px;
-    margin-left: calc(-50vw + 50% + 10px);
-    width: calc(100vw - 48px);
-    padding: 24px 0;
-  }
-
-  .logo {
-    font-size: 20px;
+  
+  .demo-title {
+    font-size: 32px;
     font-weight: 600;
     color: #1a1a1a;
-    text-decoration: none;
+    margin-bottom: 16px;
     letter-spacing: -0.02em;
   }
-
-  .logo::after {
-    content: "";
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: linear-gradient(135deg, #10b981 0%, #037e55 100%);
-    transition: width 0.3s ease;
-    transform: translateX(-50%);
-  }
-
-  .logo:hover::after {
-    width: 100%;
-  }
-
-  .header-buttons {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-  }
-
-  .login-button {
-    padding: 10px 20px;
-    border: unset;
-    border-radius: 8px;
-    color: #212121;
-    z-index: 1;
-    background: #e8e8e8;
-    position: relative;
-    font-weight: 500;
-    font-size: 14px;
-    font-family: inherit;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 400ms ease;
-    overflow: hidden;
-    min-width: 72px;
-    height: 40px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    letter-spacing: -0.01em;
-  }
-
-  .login-button::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 0;
-    border-radius: 8px;
-    background-color: #212121;
-    z-index: -1;
-    transition: all 400ms ease;
-  }
-
-  .login-button:hover {
-    color: #e8e8e8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-
-  .login-button:hover::before {
-    width: 100%;
-  }
-
-  .login-button:active {
-    transform: translateY(0);
-    transition: all 150ms ease;
-  }
-
-  .modern-main {
-    margin-top: 72px;
-  }
-
-  .modern-hero {
-    padding: 120px 0 80px;
-    text-align: center;
-    background: linear-gradient(to bottom, #fafafa 0%, #ffffff 100%);
-    width: 100%;
-  }
-
-  .modern-hero h1 {
-    font-size: clamp(48px, 6vw, 72px);
-    font-weight: 700;
-    color: #1a1a1a;
-    letter-spacing: -0.04em;
-    margin-bottom: 24px;
-    line-height: 1.1;
-  }
-
-  .modern-hero p {
-    font-size: 20px;
+  
+  .demo-subtitle {
+    font-size: 18px;
     color: #6b7280;
-    margin-bottom: 48px;
-    max-width: 480px;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0;
     font-weight: 400;
-    letter-spacing: -0.01em;
   }
-
-  .cssbuttons-io {
+  
+  .home-cta-button {
     position: relative;
     font-family: inherit;
     font-weight: 500;
@@ -210,25 +33,25 @@
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.25s ease;
-  }
-
-  .cssbuttons-io svg {
-    width: 1.25em;
-    height: 1.25em;
-    margin-right: 0.5em;
-    stroke: currentColor;
-  }
-
-  .cssbuttons-io span {
-    position: relative;
-    z-index: 10;
-    transition: color 0.4s;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    gap: 8px;
     padding: 16px 32px;
   }
-
-  .cssbuttons-io::before {
+  
+  .home-cta-button svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  
+  .home-cta-button span {
+    position: relative;
+    z-index: 10;
+  }
+  
+  .home-cta-button::before {
     content: "";
     position: absolute;
     top: 0;
@@ -239,264 +62,161 @@
     background: #212121;
     transform: skew(30deg);
     transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1);
-    z-index: 0;
+    z-index: 1;
   }
-
-  .cssbuttons-io:hover::before {
+  
+  .home-cta-button:hover::before {
     transform: translate3d(100%, 0, 0);
   }
-
-  .cssbuttons-io:hover {
+  
+  .home-cta-button:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
-
-  .cssbuttons-io:active {
+  
+  .home-cta-button:active {
     transform: scale(0.95);
   }
-
-  .modern-demo-section {
-    padding: 80px 0;
-    background: #ffffff;
+  
+  .home-logo {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+  
+  .home-logo::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(135deg, #10b981 0%, #037e55 100%);
+    transition: width 0.3s ease;
+    transform: translateX(-50%);
+  }
+  
+  .home-logo:hover::after {
     width: 100%;
   }
-
-  .demo-container {
-    max-width: 800px;
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .demo-title {
-    font-size: 32px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 16px;
-    letter-spacing: -0.02em;
-  }
-
-  .demo-subtitle {
-    font-size: 18px;
-    color: #6b7280;
-    margin-bottom: 64px;
-    font-weight: 400;
-  }
-
-  .todo-mockup {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 24px rgba(0, 0, 0, 0.06);
-    padding: 32px;
-    max-width: 480px;
-    margin: 0 auto;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-  }
-
-  .todo-header {
+  
+  .home-header-buttons {
     display: flex;
-    justify-content: space-between;
+    gap: 16px;
     align-items: center;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   }
-
-  .todo-header h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1a1a1a;
-    letter-spacing: -0.01em;
-  }
-
-  .todo-date {
-    font-size: 14px;
-    color: #6b7280;
+  
+  .home-login-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    color: #212121;
+    background: #e8e8e8;
     font-weight: 500;
-  }
-
-  .todo-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-    transition: all 0.25s ease;
-  }
-
-  .todo-item:hover {
-    background: rgba(0, 0, 0, 0.02);
-  }
-
-  .todo-item:last-child {
-    border-bottom: none;
-  }
-
-  .todo-checkbox {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #d1d5db;
-    border-radius: 4px;
-    position: relative;
+    font-size: 14px;
+    font-family: inherit;
     cursor: pointer;
-    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 400ms ease;
+    overflow: hidden;
+    min-width: 72px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
   }
-
-  .todo-checkbox:hover {
-    border-color: #646cff;
-  }
-
-  .todo-checkbox.completed {
-    background: #1a1a1a;
-    border-color: #1a1a1a;
-  }
-
-  .todo-checkbox.completed::after {
-    content: '✓';
+  
+  .home-login-button::before {
+    content: "";
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    border-radius: 8px;
+    background-color: #212121;
+    z-index: -1;
+    transition: all 400ms ease;
   }
-
-  .todo-text {
-    font-size: 15px;
-    color: #1a1a1a;
-    flex: 1;
-    text-align: left;
-    font-weight: 400;
+  
+  .home-login-button:hover {
+    color: #e8e8e8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
-
-  .todo-text.completed {
-    text-decoration: line-through;
-    color: #9ca3af;
+  
+  .home-login-button:hover::before {
+    width: 100%;
   }
-
-  .todo-priority {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+  
+  .home-login-button:active {
+    transform: translateY(0);
+    transition: all 150ms ease;
   }
-
-  .priority-high { 
-    background: #ef4444;
-  }
-
-  .priority-medium { 
-    background: #f59e0b;
-  }
-
-  .priority-low { 
-    background: #10b981;
-  }
-
-  .modern-footer {
+  
+  .home-footer {
     background: #fafafa;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
     padding: 64px 0 32px;
     margin-top: 80px;
     width: 100%;
   }
-
-  .footer-content {
+  
+  .home-footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
     text-align: center;
   }
-
-  .footer-links {
+  
+  .home-footer-links {
     display: flex;
     justify-content: center;
     gap: 32px;
     margin-bottom: 32px;
     flex-wrap: wrap;
   }
-
-  .footer-links a {
+  
+  .home-footer-links a {
     color: #6b7280;
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
     transition: color 0.2s ease;
   }
-
-  .footer-links a:hover {
+  
+  .home-footer-links a:hover {
     color: #1a1a1a;
   }
-
-  .footer-copy {
+  
+  .home-footer-copy {
     font-size: 14px;
     color: #9ca3af;
     font-weight: 400;
+    margin: 0;
   }
-
-  .fade-in {
-    opacity: 0;
-    transform: translateY(20px);
-    animation: fadeInUp 0.8s ease forwards;
-  }
-
-  @keyframes fadeInUp {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .modern-hero .fade-in:nth-child(1) { animation-delay: 0.1s; }
-  .modern-hero .fade-in:nth-child(2) { animation-delay: 0.2s; }
-  .modern-hero .fade-in:nth-child(3) { animation-delay: 0.3s; }
-
+  
   @media (max-width: 768px) {
-    .container {
-      padding: 0 20px;
+    .demo-section-header {
+      margin-bottom: 48px;
     }
-
-    .header-content {
-      height: 64px;
+    
+    .demo-title {
+      font-size: 24px;
     }
-
-    .modern-hero {
-      padding: 80px 0 60px;
+    
+    .demo-subtitle {
+      font-size: 16px;
     }
-
-    .modern-hero h1 {
-      font-size: 40px;
-    }
-
-    .modern-hero p {
-      font-size: 18px;
-      margin-bottom: 40px;
-    }
-
-    .cssbuttons-io {
-      font-size: 14px;
-    }
-
-    .cssbuttons-io span {
-      padding: 12px 24px;
-    }
-
-    .cssbuttons-io svg {
-      width: 1em;
-      height: 1em;
-    }
-
-    .modern-demo-section {
-      padding: 60px 0;
-    }
-
-    .todo-mockup {
-      padding: 24px;
-      margin: 0 20px;
-    }
-
-    .footer-links {
+    
+    .home-footer-links {
       gap: 24px;
       flex-direction: column;
-    }
-
-    .modern-main {
-      margin-top: 64px;
     }
   }

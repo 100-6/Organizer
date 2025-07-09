@@ -1,0 +1,92 @@
+/* front-end/src/components/Section/Section.css */
+.section {
+    width: 100%;
+  }
+  
+  .section--small {
+    padding: 40px 0;
+  }
+  
+  .section--medium {
+    padding: 80px 0;
+  }
+  
+  .section--large {
+    padding: 120px 0;
+  }
+  
+  .section--white {
+    background: #ffffff;
+  }
+  
+  .section--gray {
+    background: #fafafa;
+  }
+  
+  .section--centered {
+    text-align: center;
+  }
+  
+  .section-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  
+  .section--centered .section-container {
+    max-width: 800px;
+  }
+  
+  .section-header {
+    margin-bottom: 48px;
+  }
+  
+  .section--centered .section-header {
+    text-align: center;
+  }
+  
+  .section-title {
+    font-size: 32px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+  
+  .section-subtitle {
+    font-size: 18px;
+    color: #6b7280;
+    font-weight: 400;
+    line-height: 1.6;
+    margin: 0;
+  }
+  
+  .section-content {
+    width: 100%;
+  }
+  
+  @media (max-width: 768px) {
+    .section-container {
+      padding: 0 20px;
+    }
+  
+    .section--small {
+      padding: 30px 0;
+    }
+  
+    .section--medium {
+      padding: 60px 0;
+    }
+  
+    .section--large {
+      padding: 80px 0;
+    }
+  
+    .section-title {
+      font-size: 24px;
+    }
+  
+    .section-subtitle {
+      font-size: 16px;
+    }
+  }

@@ -1,7 +1,17 @@
+// front-end/src/pages/Register/Register.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { AuthForm, FormInput, Button } from '../../components'
+import { 
+  FormInput, 
+  Button, 
+  PageLayout, 
+  ContentCard,
+  AlertMessage 
+} from '../../components'
+import AuthHeader from '../Login/components/AuthHeader'
+import AuthFooter from '../Login/components/AuthFooter'
+import './Register.css'
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -64,70 +74,77 @@ const Register = () => {
   }
 
   return (
-    <AuthForm
-      title="Créer un compte"
-      subtitle="Commencez à organiser vos tâches dès maintenant"
-      error={error}
-      onSubmit={handleSubmit}
-      footer={{
-        text: "Déjà un compte ?",
-        linkText: "Se connecter",
-        linkTo: "/login"
-      }}
-    >
-      <FormInput
-        label="Nom d'utilisateur"
-        type="text"
-        id="username"
-        name="username"
-        value={formData.username}
-        onChange={handleInputChange}
-        placeholder="Nom d'utilisateur"
-        required
-      />
+    <PageLayout variant="centered" showHeader={false}>
+      <ContentCard variant="auth" maxWidth="small" centered>
+        <AuthHeader
+          title="Créer un compte"
+          subtitle="Commencez à organiser vos tâches dès maintenant"
+        />
 
-      <FormInput
-        label="Email"
-        type="email"
-        id="email"
-        name="email"
-        value={formData.email}
-        onChange={handleInputChange}
-        placeholder="m@email.com"
-        required
-      />
+        {error && <AlertMessage type="error" message={error} />}
 
-      <FormInput
-        label="Mot de passe"
-        type="password"
-        id="password"
-        name="password"
-        value={formData.password}
-        onChange={handleInputChange}
-        placeholder="••••••••"
-        required
-      />
+        <form onSubmit={handleSubmit} className="auth-form">
+          <FormInput
+            label="Nom d'utilisateur"
+            type="text"
+            id="username"
+            name="username"
+            value={formData.username}
+            onChange={handleInputChange}
+            placeholder="Nom d'utilisateur"
+            required
+          />
 
-      <FormInput
-        label="Confirmer le mot de passe"
-        type="password"
-        id="confirmPassword"
-        name="confirmPassword"
-        value={formData.confirmPassword}
-        onChange={handleInputChange}
-        placeholder="••••••••"
-        required
-      />
+          <FormInput
+            label="Email"
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            placeholder="m@email.com"
+            required
+          />
 
-      <Button 
-        type="submit" 
-        variant="primary" 
-        size="large"
-        disabled={isLoading}
-      >
-        <span>{isLoading ? 'Création...' : 'Créer le compte'}</span>
-      </Button>
-    </AuthForm>
+          <FormInput
+            label="Mot de passe"
+            type="password"
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            placeholder="••••••••"
+            required
+          />
+
+          <FormInput
+            label="Confirmer le mot de passe"
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            placeholder="••••••••"
+            required
+          />
+
+          <Button 
+            type="submit" 
+            variant="primary" 
+            size="large"
+            disabled={isLoading}
+          >
+            <span>{isLoading ? 'Création...' : 'Créer le compte'}</span>
+          </Button>
+        </form>
+
+        <AuthFooter
+          text="Déjà un compte ?"
+          linkText="Se connecter"
+          linkTo="/login"
+        />
+      </ContentCard>
+    </PageLayout>
   )
 }
 

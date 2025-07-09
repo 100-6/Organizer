@@ -1,7 +1,16 @@
+// front-end/src/pages/Login/Login.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { AuthForm, FormInput, Button } from '../../components'
+import { 
+  FormInput, 
+  Button, 
+  PageLayout, 
+  ContentCard,
+  AlertMessage 
+} from '../../components'
+import AuthHeader from './components/AuthHeader'
+import AuthFooter from './components/AuthFooter'
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -52,48 +61,55 @@ const Login = () => {
   }
 
   return (
-    <AuthForm
-      title="Connexion"
-      subtitle="Connectez-vous à votre compte pour continuer"
-      error={error}
-      onSubmit={handleSubmit}
-      footer={{
-        text: "Pas encore de compte ?",
-        linkText: "Créer un compte",
-        linkTo: "/register"
-      }}
-    >
-      <FormInput
-        label="Email"
-        type="email"
-        id="email"
-        name="email"
-        value={formData.email}
-        onChange={handleInputChange}
-        placeholder="m@email.com"
-        required
-      />
+    <PageLayout variant="centered" showHeader={false}>
+      <ContentCard variant="auth" maxWidth="small" centered>
+        <AuthHeader
+          title="Connexion"
+          subtitle="Connectez-vous à votre compte pour continuer"
+        />
 
-      <FormInput
-        label="Mot de passe"
-        type="password"
-        id="password"
-        name="password"
-        value={formData.password}
-        onChange={handleInputChange}
-        placeholder="••••••••"
-        required
-      />
+        {error && <AlertMessage type="error" message={error} />}
 
-      <Button 
-        type="submit" 
-        variant="primary" 
-        size="large"
-        disabled={isLoading}
-      >
-        <span>{isLoading ? 'Connexion...' : 'Se connecter'}</span>
-      </Button>
-    </AuthForm>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <FormInput
+            label="Email"
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            placeholder="m@email.com"
+            required
+          />
+
+          <FormInput
+            label="Mot de passe"
+            type="password"
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            placeholder="••••••••"
+            required
+          />
+
+          <Button 
+            type="submit" 
+            variant="primary" 
+            size="large"
+            disabled={isLoading}
+          >
+            <span>{isLoading ? 'Connexion...' : 'Se connecter'}</span>
+          </Button>
+        </form>
+
+        <AuthFooter
+          text="Pas encore de compte ?"
+          linkText="Créer un compte"
+          linkTo="/register"
+        />
+      </ContentCard>
+    </PageLayout>
   )
 }
 

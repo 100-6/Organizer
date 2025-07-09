@@ -1,0 +1,99 @@
+/* front-end/src/components/HeroSection/HeroSection.css */
+.hero-section {
+    padding: 80px 0;
+    width: 100%;
+  }
+  
+  .hero-section--gradient {
+    background: linear-gradient(to bottom, #fafafa 0%, #ffffff 100%);
+    padding: 120px 0 80px;
+  }
+  
+  .hero-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  
+  .hero-container--centered {
+    text-align: center;
+  }
+  
+  .hero-title {
+    font-size: clamp(32px, 6vw, 72px);
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.04em;
+    margin-bottom: 24px;
+    line-height: 1.1;
+  }
+  
+  .hero-subtitle {
+    font-size: 20px;
+    color: #6b7280;
+    margin-bottom: 48px;
+    max-width: 480px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+  
+  .hero-container--centered .hero-subtitle {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .hero-container--centered .hero-actions {
+    justify-content: center;
+  }
+  
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.8s ease forwards;
+  }
+  
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .hero-section .fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .hero-section .fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .hero-section .fade-in:nth-child(3) { animation-delay: 0.3s; }
+  
+  @media (max-width: 768px) {
+    .hero-container {
+      padding: 0 20px;
+    }
+  
+    .hero-section {
+      padding: 60px 0;
+    }
+  
+    .hero-section--gradient {
+      padding: 80px 0 60px;
+    }
+  
+    .hero-title {
+      font-size: 40px;
+    }
+  
+    .hero-subtitle {
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+  
+    .hero-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }

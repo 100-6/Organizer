@@ -1,0 +1,29 @@
+/* front-end/src/pages/Login/components/AuthHeader.css */
+.auth-form-header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  
+  .auth-form-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  
+  .auth-form-header p {
+    font-size: 15px;
+    color: #6b7280;
+    font-weight: 400;
+    line-height: 1.5;
+    margin: 0;
+  }
+  
+  @media (max-width: 640px) {
+    .auth-form-header h1 {
+      font-size: 24px;
+    }
+  }
