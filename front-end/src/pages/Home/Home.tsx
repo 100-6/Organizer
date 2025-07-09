@@ -1,4 +1,3 @@
-// front-end/src/pages/Home/Home.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -23,6 +22,7 @@ interface TodoItem {
 const Home = () => {
   const navigate = useNavigate()
   const { isAuthenticated, isLoading } = useAuth()
+  const [animationKey, setAnimationKey] = useState(0)
   const [todos, setTodos] = useState<TodoItem[]>([
     { id: 1, text: "Réviser la présentation client", completed: true, priority: 'high' },
     { id: 2, text: "Appeler le service technique", completed: false, priority: 'medium' },
@@ -43,6 +43,14 @@ const Home = () => {
     navigate(isAuthenticated ? '/dashboard' : '/register')
   }
 
+  const handleLogoClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    
+    setTimeout(() => {
+      setAnimationKey(prev => prev + 1)
+    }, 100)
+  }
+
   const handleTodoToggle = (id: number) => {
     setTodos(prevTodos =>
       prevTodos.map(todo =>
@@ -57,7 +65,7 @@ const Home = () => {
 
   const headerContent = (
     <>
-      <div className="home-logo">Organizer</div>
+      <div className="home-logo" onClick={handleLogoClick}>Organizer</div>
       <div className="home-header-buttons">
         <button className="home-login-button" onClick={handleLogin}>
           Login
@@ -72,6 +80,7 @@ const Home = () => {
   return (
     <PageLayout variant="fullscreen" headerContent={headerContent}>
       <HeroSection
+        key={`hero-${animationKey}`}
         title="Organisez votre journée avec élégance"
         subtitle="Une approche simple et raffinée pour gérer vos tâches quotidiennes. Concentrez-vous sur l'essentiel."
         gradient
