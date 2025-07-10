@@ -408,7 +408,6 @@ const Workspace = () => {
         <div className="workspace-page">
         <WorkspaceHeader
           workspace={workspace}
-          onCreateLabel={() => setShowCreateLabelModal(true)}
           onAddMember={handleAddMember}
           onSettings={handleSettings}
           onManageLabels={() => setShowLabelManagerModal(true)}

@@ -4,7 +4,6 @@ import { Avatar } from '../../../components'
 import TodoLabels from './TodoLabels'
 import Checklist from './Checklist'
 import './TodoCard.css'
-import CardLabelPopover from './CardLabelPopover'
 
 interface Todo {
   id: number
@@ -21,7 +20,7 @@ interface Todo {
   completed_checklist_count: number
   labels: Label[]
   checklist_items?: ChecklistItem[]
-  workspace_id: number // Added workspace_id to Todo interface
+  workspace_id: number
 }
 
 interface ChecklistItem {
@@ -50,8 +49,6 @@ interface TodoCardProps {
 const TodoCard = ({ todo, labels, onEdit, onDelete, onLabelsOrTodosUpdated }: TodoCardProps) => {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const [showLabelPopover, setShowLabelPopover] = useState(false)
-  const [anchorLabelPopover, setAnchorLabelPopover] = useState<HTMLElement | null>(null)
 
   if (!todo) {
     console.error('TodoCard: todo prop is null or undefined')
@@ -145,18 +142,13 @@ const TodoCard = ({ todo, labels, onEdit, onDelete, onLabelsOrTodosUpdated }: To
     }
   }
 
-
-
   return (
     <div 
       ref={drag as any}
       className={`todo-card ${isDragging ? 'todo-card--dragging' : ''}`}
       onClick={handleCardClick}
     >
-      <TodoLabels 
-        labels={todo.labels || []}
-        showAddButton={false}
-      />
+      <TodoLabels labels={todo.labels || []} />
 
       <div className="todo-content">
         <h4 className="todo-title">{todo.title || 'Titre manquant'}</h4>
@@ -169,19 +161,15 @@ const TodoCard = ({ todo, labels, onEdit, onDelete, onLabelsOrTodosUpdated }: To
         <Checklist
           items={todo.checklist_items}
           onItemToggle={(itemId, completed) => {
-            // TODO: Appeler API pour mettre à jour l'item
             console.log('Toggle checklist item:', itemId, completed)
           }}
           onItemUpdate={(itemId, text) => {
-            // TODO: Appeler API pour mettre à jour l'item
             console.log('Update checklist item:', itemId, text)
           }}
           onItemDelete={(itemId) => {
-            // TODO: Appeler API pour supprimer l'item
             console.log('Delete checklist item:', itemId)
           }}
           onItemAdd={(text) => {
-            // TODO: Appeler API pour ajouter un item
             console.log('Add checklist item:', text)
           }}
         />

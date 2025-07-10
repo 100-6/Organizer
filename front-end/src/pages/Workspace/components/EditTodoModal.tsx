@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Modal, FormInput, FormTextarea, Button } from '../../../components'
 import TodoLabels from './TodoLabels'
 import Checklist from './Checklist'
-import CreateLabelMenu from './CreateLabelMenu'
+import LabelSelectorModal from './LabelSelectorModal'
 import './EditTodoModal.css'
 
 interface Todo {
@@ -75,9 +75,7 @@ const EditTodoModal = ({
     selectedLabels: [] as number[]
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showCreateLabelMenu, setShowCreateLabelMenu] = useState(false)
-  const [labelError, setLabelError] = useState('')
-  const [showLabelSelectorMenu, setShowLabelSelectorMenu] = useState(false)
+  const [showLabelSelector, setShowLabelSelector] = useState(false)
 
   useEffect(() => {
     if (todo && isOpen) {
@@ -108,7 +106,7 @@ const EditTodoModal = ({
         labels: formData.selectedLabels
       })
       onClose()
-      onLabelsUpdated() // force le refresh après fermeture
+      onLabelsUpdated()
     } catch (error) {
       console.error('Error updating todo:', error)
     } finally {
@@ -116,17 +114,46 @@ const EditTodoModal = ({
     }
   }
 
-  const handleLabelToggle = (labelId: number) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedLabels: prev.selectedLabels.includes(labelId)
-        ? prev.selectedLabels.filter(id => id !== labelId)
-        : [...prev.selectedLabels, labelId]
-    }))
+  const handleToggleLabel = async (labelId: number) => {
+    if (!todo) return
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      const isSelected = formData.selectedLabels.includes(labelId)
+      
+      if (isSelected) {
+        // Supprimer le label
+        await fetch(`/api/todos/${todo.id}/labels/${labelId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        setFormData(prev => ({
+          ...prev,
+          selectedLabels: prev.selectedLabels.filter(id => id !== labelId)
+        }))
+      } else {
+        // Ajouter le label
+        await fetch(`/api/todos/${todo.id}/labels`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ labelId })
+        })
+        setFormData(prev => ({
+          ...prev,
+          selectedLabels: [...prev.selectedLabels, labelId]
+        }))
+      }
+      
+      onLabelsUpdated()
+    } catch (error) {
+      console.error('Error toggling label:', error)
+    }
   }
 
   const handleCreateLabel = async (labelData: { name: string; color: string }) => {
-    setLabelError('')
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch('/api/labels', {
@@ -141,9 +168,10 @@ const EditTodoModal = ({
           workspaceId: workspaceId
         })
       })
+      
       if (response.ok) {
         const newLabel = await response.json()
-        // Associer le label à la todo si on est en édition
+        // Associer automatiquement le nouveau label à la todo
         if (todo && newLabel.label && newLabel.label.id) {
           await fetch(`/api/todos/${todo.id}/labels`, {
             method: 'POST',
@@ -153,28 +181,37 @@ const EditTodoModal = ({
             },
             body: JSON.stringify({ labelId: newLabel.label.id })
           })
+          setFormData(prev => ({
+            ...prev,
+            selectedLabels: [...prev.selectedLabels, newLabel.label.id]
+          }))
         }
-        // Rafraîchir la liste des labels
         onLabelsUpdated()
-        // Ajouter automatiquement le nouveau label à la todo
-        setFormData(prev => ({
-          ...prev,
-          selectedLabels: [...prev.selectedLabels, newLabel.label.id]
-        }))
-        setShowCreateLabelMenu(false)
-      } else {
-        const data = await response.json()
-        setLabelError(data.error || 'Erreur lors de la création du label')
       }
     } catch (error) {
       console.error('Error creating label:', error)
-      setLabelError('Erreur de connexion')
     }
   }
 
-  const handleAddChecklistItem = (text: string) => {
-    // TODO: Appeler API pour ajouter un item de checklist
-    console.log('Add checklist item:', text)
+  const handleRemoveLabel = async (labelId: number) => {
+    if (!todo) return
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      await fetch(`/api/todos/${todo.id}/labels/${labelId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      setFormData(prev => ({
+        ...prev,
+        selectedLabels: prev.selectedLabels.filter(id => id !== labelId)
+      }))
+      
+      onLabelsUpdated()
+    } catch (error) {
+      console.error('Error removing label:', error)
+    }
   }
 
   const handleClose = () => {
@@ -191,206 +228,202 @@ const EditTodoModal = ({
 
   if (!todo) return null
 
+  const selectedLabels = labels.filter(label => formData.selectedLabels.includes(label.id))
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title="Modifier la tâche"
-      size="medium"
-    >
-      <form onSubmit={handleSubmit} className="edit-todo-form">
-        <FormInput
-          label="Titre"
-          type="text"
-          id="title"
-          name="title"
-          value={formData.title}
-          onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-          placeholder="Qu'est-ce qui doit être fait ?"
-          required
-        />
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="Modifier la tâche"
+        size="medium"
+      >
+        <form onSubmit={handleSubmit} className="edit-todo-form">
+          <FormInput
+            label="Titre"
+            type="text"
+            id="title"
+            name="title"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            placeholder="Qu'est-ce qui doit être fait ?"
+            required
+          />
 
-        <FormTextarea
-          label="Description (optionnelle)"
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Ajoutez une description détaillée..."
-          rows={3}
-        />
+          <FormTextarea
+            label="Description (optionnelle)"
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Ajoutez une description détaillée..."
+            rows={3}
+          />
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="assignedTo" className="form-label">
-              Assigner à
-            </label>
-            <select
-              id="assignedTo"
-              name="assignedTo"
-              value={formData.assignedTo}
-              onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
-              className="form-select"
-            >
-              <option value="">Personne</option>
-              {members.map(member => (
-                <option key={member.id} value={member.id}>
-                  {member.username}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <FormInput
-              label="Date d'échéance"
-              type="date"
-              id="dueDate"
-              name="dueDate"
-              value={formData.dueDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-            />
-          </div>
-          <div className="form-group">
-            <FormInput
-              label="Heure"
-              type="time"
-              id="dueTime"
-              name="dueTime"
-              value={formData.dueTime}
-              onChange={(e) => setFormData(prev => ({ ...prev, dueTime: e.target.value }))}
-            />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Labels</label>
-          {labels.length > 0 && (
-            <div className="labels-grid">
-              {labels.map(label => (
-                <button
-                  key={label.id}
-                  type="button"
-                  className={`label-option ${formData.selectedLabels.includes(label.id) ? 'label-option--selected' : ''}`}
-                  onClick={() => handleLabelToggle(label.id)}
-                  style={{ backgroundColor: label.color }}
-                >
-                  {label.name || 'Sans nom'}
-                  {formData.selectedLabels.includes(label.id) && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </button>
-              ))}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="assignedTo" className="form-label">
+                Assigner à
+              </label>
+              <select
+                id="assignedTo"
+                name="assignedTo"
+                value={formData.assignedTo}
+                onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
+                className="form-select"
+              >
+                <option value="">Personne</option>
+                {members.map(member => (
+                  <option key={member.id} value={member.id}>
+                    {member.username}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-          <Button
-            type="button"
-            variant="secondary"
-            size="small"
-            onClick={() => setShowCreateLabelMenu(true)}
-            disabled={isSubmitting}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Gérer les labels
-          </Button>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Checklist</label>
-          {todo.checklist_items && todo.checklist_items.length > 0 ? (
-            <Checklist
-              items={todo.checklist_items}
-              onItemToggle={(itemId, completed) => {
-                // TODO: Appeler API pour mettre à jour l'item
-                console.log('Toggle checklist item:', itemId, completed)
-              }}
-              onItemUpdate={(itemId, text) => {
-                // TODO: Appeler API pour mettre à jour l'item
-                console.log('Update checklist item:', itemId, text)
-              }}
-              onItemDelete={(itemId) => {
-                // TODO: Appeler API pour supprimer l'item
-                console.log('Delete checklist item:', itemId)
-              }}
-              onItemAdd={(text) => {
-                // TODO: Appeler API pour ajouter un item
-                console.log('Add checklist item:', text)
-              }}
-            />
-          ) : (
-            <button
-              type="button"
-              className="add-checklist-button"
-              onClick={() => {
-                // TODO: Créer une checklist pour cette todo
-                console.log('Add checklist to todo:', todo.id)
-              }}
-              disabled={isSubmitting}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Ajouter une checklist
-            </button>
-          )}
-        </div>
-
-        <div className="todo-meta">
-          <div className="todo-meta-item">
-            <span className="todo-meta-label">Créé le</span>
-            <span className="todo-meta-value">
-              {new Date(todo.created_at).toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-              })}
-            </span>
           </div>
-          {todo.checklist_count > 0 && (
+
+          <div className="form-row">
+            <div className="form-group">
+              <FormInput
+                label="Date d'échéance"
+                type="date"
+                id="dueDate"
+                name="dueDate"
+                value={formData.dueDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-group">
+              <FormInput
+                label="Heure"
+                type="time"
+                id="dueTime"
+                name="dueTime"
+                value={formData.dueTime}
+                onChange={(e) => setFormData(prev => ({ ...prev, dueTime: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div className="labels-section">
+              <div className="labels-header">
+                <label className="form-label">Labels</label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  onClick={() => setShowLabelSelector(true)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+                  </svg>
+                  Labels
+                </Button>
+              </div>
+              {selectedLabels.length > 0 && (
+                <div className="current-labels">
+                  {selectedLabels.map(label => (
+                    <span
+                      key={label.id}
+                      className="current-label"
+                      style={{ backgroundColor: label.color }}
+                    >
+                      {label.name || 'Sans nom'}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Checklist</label>
+            {todo.checklist_items && todo.checklist_items.length > 0 ? (
+              <Checklist
+                items={todo.checklist_items}
+                onItemToggle={(itemId, completed) => {
+                  console.log('Toggle checklist item:', itemId, completed)
+                }}
+                onItemUpdate={(itemId, text) => {
+                  console.log('Update checklist item:', itemId, text)
+                }}
+                onItemDelete={(itemId) => {
+                  console.log('Delete checklist item:', itemId)
+                }}
+                onItemAdd={(text) => {
+                  console.log('Add checklist item:', text)
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                className="add-checklist-button"
+                onClick={() => {
+                  console.log('Add checklist to todo:', todo.id)
+                }}
+                disabled={isSubmitting}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Ajouter une checklist
+              </button>
+            )}
+          </div>
+
+          <div className="todo-meta">
             <div className="todo-meta-item">
-              <span className="todo-meta-label">Checklist</span>
+              <span className="todo-meta-label">Créé le</span>
               <span className="todo-meta-value">
-                {todo.completed_checklist_count}/{todo.checklist_count} terminé(s)
+                {new Date(todo.created_at).toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
               </span>
             </div>
-          )}
-        </div>
+            {todo.checklist_count > 0 && (
+              <div className="todo-meta-item">
+                <span className="todo-meta-label">Checklist</span>
+                <span className="todo-meta-value">
+                  {todo.completed_checklist_count}/{todo.checklist_count} terminé(s)
+                </span>
+              </div>
+            )}
+          </div>
 
-        <div className="modal-actions">
-          <Button 
-            type="button" 
-            variant="secondary" 
-            onClick={handleClose}
-          >
-            Annuler
-          </Button>
-          <Button 
-            type="submit" 
-            variant="primary"
-            disabled={isSubmitting || !formData.title.trim()}
-          >
-            {isSubmitting ? 'Modification...' : 'Modifier la tâche'}
-          </Button>
-        </div>
-      </form>
+          <div className="modal-actions">
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={handleClose}
+            >
+              Annuler
+            </Button>
+            <Button 
+              type="submit" 
+              variant="primary"
+              disabled={isSubmitting || !formData.title.trim()}
+            >
+              {isSubmitting ? 'Modification...' : 'Modifier la tâche'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
-      <CreateLabelMenu
-        isOpen={showCreateLabelMenu}
-        onClose={() => {
-          setShowCreateLabelMenu(false)
-          setLabelError('')
-        }}
-        onSubmit={handleCreateLabel}
-        error={labelError}
+      <LabelSelectorModal
+        isOpen={showLabelSelector}
+        onClose={() => setShowLabelSelector(false)}
+        labels={labels}
+        selectedLabels={selectedLabels}
+        onToggleLabel={handleToggleLabel}
+        onCreateLabel={handleCreateLabel}
+        workspaceId={workspaceId}
       />
-    </Modal>
+    </>
   )
 }
 

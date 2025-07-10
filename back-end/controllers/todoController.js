@@ -578,18 +578,159 @@ const updateTodosPositions = async (req, res) => {
 };
 
 const addLabelToTodo = async (req, res) => {
-  try {
-    const { todoId } = req.params;
-    const { labelId } = req.body;
-    await pool.query(
-      'INSERT INTO todo_labels (todo_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [todoId, labelId]
-    );
-    res.json({ message: 'Label associé à la todo' });
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de l\'association du label' });
+    const client = await pool.connect()
+    try {
+      const { todoId } = req.params
+      const { labelId } = req.body
+      const userId = req.user.id
+  
+      if (isNaN(todoId) || isNaN(labelId)) {
+        return res.status(400).json({
+          error: 'IDs invalides'
+        })
+      }
+  
+      await client.query('BEGIN')
+  
+      const todoResult = await client.query(`
+        SELECT t.*, l.workspace_id
+        FROM todos t
+        JOIN lists l ON t.list_id = l.id
+        WHERE t.id = $1
+      `, [todoId])
+  
+      if (todoResult.rows.length === 0) {
+        await client.query('ROLLBACK')
+        return res.status(404).json({
+          error: 'Todo introuvable'
+        })
+      }
+  
+      const todo = todoResult.rows[0]
+  
+      const memberCheck = await client.query(
+        'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+        [todo.workspace_id, userId]
+      )
+  
+      if (memberCheck.rows.length === 0) {
+        await client.query('ROLLBACK')
+        return res.status(403).json({
+          error: 'Accès refusé'
+        })
+      }
+  
+      const labelResult = await client.query(
+        'SELECT workspace_id FROM labels WHERE id = $1',
+        [labelId]
+      )
+  
+      if (labelResult.rows.length === 0) {
+        await client.query('ROLLBACK')
+        return res.status(404).json({
+          error: 'Label introuvable'
+        })
+      }
+  
+      if (labelResult.rows[0].workspace_id !== todo.workspace_id) {
+        await client.query('ROLLBACK')
+        return res.status(400).json({
+          error: 'Le label doit appartenir au même workspace que la todo'
+        })
+      }
+  
+      await client.query(
+        'INSERT INTO todo_labels (todo_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [todoId, labelId]
+      )
+  
+      await client.query('COMMIT')
+  
+      res.json({
+        message: 'Label associé à la todo avec succès'
+      })
+  
+    } catch (error) {
+      await client.query('ROLLBACK')
+      console.error('Erreur lors de l\'association du label:', error)
+      res.status(500).json({
+        error: 'Erreur interne du serveur'
+      })
+    } finally {
+      client.release()
+    }
   }
-};
+  
+  const removeLabelFromTodo = async (req, res) => {
+    const client = await pool.connect()
+    try {
+      const { todoId, labelId } = req.params
+      const userId = req.user.id
+  
+      if (isNaN(todoId) || isNaN(labelId)) {
+        return res.status(400).json({
+          error: 'IDs invalides'
+        })
+      }
+  
+      await client.query('BEGIN')
+  
+      const todoResult = await client.query(`
+        SELECT t.*, l.workspace_id
+        FROM todos t
+        JOIN lists l ON t.list_id = l.id
+        WHERE t.id = $1
+      `, [todoId])
+  
+      if (todoResult.rows.length === 0) {
+        await client.query('ROLLBACK')
+        return res.status(404).json({
+          error: 'Todo introuvable'
+        })
+      }
+  
+      const todo = todoResult.rows[0]
+  
+      const memberCheck = await client.query(
+        'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+        [todo.workspace_id, userId]
+      )
+  
+      if (memberCheck.rows.length === 0) {
+        await client.query('ROLLBACK')
+        return res.status(403).json({
+          error: 'Accès refusé'
+        })
+      }
+  
+      const result = await client.query(
+        'DELETE FROM todo_labels WHERE todo_id = $1 AND label_id = $2',
+        [todoId, labelId]
+      )
+  
+      if (result.rowCount === 0) {
+        await client.query('ROLLBACK')
+        return res.status(404).json({
+          error: 'Association label-todo introuvable'
+        })
+      }
+  
+      await client.query('COMMIT')
+  
+      res.json({
+        message: 'Label retiré de la todo avec succès'
+      })
+  
+    } catch (error) {
+      await client.query('ROLLBACK')
+      console.error('Erreur lors de la suppression du label:', error)
+      res.status(500).json({
+        error: 'Erreur interne du serveur'
+      })
+    } finally {
+      client.release()
+    }
+  }
 
 module.exports = {
     createTodo,
@@ -599,5 +740,6 @@ module.exports = {
     deleteTodo,
     moveTodo,
     updateTodosPositions,
-    addLabelToTodo
+    addLabelToTodo,
+    removeLabelFromTodo
 };
