@@ -7,7 +7,8 @@ const {
     updateTodo,
     deleteTodo,
     moveTodo,
-    updateTodosPositions
+    updateTodosPositions,
+    addLabelToTodo
 } = require('../controllers/todoController');
 const { authenticateToken } = require('../middleware/auth');
 const {
@@ -23,5 +24,6 @@ router.put('/:id', authenticateToken, validateTodoUpdate, updateTodo);
 router.delete('/:id', authenticateToken, deleteTodo);
 router.patch('/:id/move', authenticateToken, validateTodoMove, moveTodo);
 router.patch('/positions', authenticateToken, updateTodosPositions);
+router.post('/:todoId/labels', authenticateToken, addLabelToTodo);
 
 module.exports = router;

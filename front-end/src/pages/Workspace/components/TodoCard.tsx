@@ -1,7 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useDrag } from 'react-dnd'
 import { Avatar } from '../../../components'
+import TodoLabels from './TodoLabels'
+import Checklist from './Checklist'
 import './TodoCard.css'
+import CardLabelPopover from './CardLabelPopover'
 
 interface Todo {
   id: number
@@ -17,6 +20,15 @@ interface Todo {
   checklist_count: number
   completed_checklist_count: number
   labels: Label[]
+  checklist_items?: ChecklistItem[]
+  workspace_id: number // Added workspace_id to Todo interface
+}
+
+interface ChecklistItem {
+  id: number
+  text: string
+  completed: boolean
+  position: number
 }
 
 interface Label {
@@ -32,11 +44,19 @@ interface TodoCardProps {
   labels: Label[]
   onEdit: () => void
   onDelete: () => void
+  onLabelsOrTodosUpdated: () => void
 }
 
-const TodoCard = ({ todo, labels, onEdit, onDelete }: TodoCardProps) => {
+const TodoCard = ({ todo, labels, onEdit, onDelete, onLabelsOrTodosUpdated }: TodoCardProps) => {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [showLabelPopover, setShowLabelPopover] = useState(false)
+  const [anchorLabelPopover, setAnchorLabelPopover] = useState<HTMLElement | null>(null)
+
+  if (!todo) {
+    console.error('TodoCard: todo prop is null or undefined')
+    return null
+  }
 
   const [{ isDragging }, drag] = useDrag({
     type: 'todo',
@@ -46,75 +66,126 @@ const TodoCard = ({ todo, labels, onEdit, onDelete }: TodoCardProps) => {
     }),
   })
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
+
   const formatDueDate = (date: string, time?: string | null) => {
-    const dueDate = new Date(date)
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(today.getDate() + 1)
-    
-    let dateStr = ''
-    if (dueDate.toDateString() === today.toDateString()) {
-      dateStr = 'Aujourd\'hui'
-    } else if (dueDate.toDateString() === tomorrow.toDateString()) {
-      dateStr = 'Demain'
-    } else {
-      dateStr = dueDate.toLocaleDateString('fr-FR', { 
-        day: 'numeric', 
-        month: 'short' 
-      })
+    try {
+      const dueDate = new Date(date)
+      const today = new Date()
+      const tomorrow = new Date(today)
+      tomorrow.setDate(today.getDate() + 1)
+      
+      let dateStr = ''
+      if (dueDate.toDateString() === today.toDateString()) {
+        dateStr = 'Aujourd\'hui'
+      } else if (dueDate.toDateString() === tomorrow.toDateString()) {
+        dateStr = 'Demain'
+      } else {
+        dateStr = dueDate.toLocaleDateString('fr-FR', { 
+          day: 'numeric', 
+          month: 'short' 
+        })
+      }
+      
+      if (time) {
+        const [hours, minutes] = time.split(':')
+        dateStr += ` à ${hours}:${minutes}`
+      }
+      
+      return dateStr
+    } catch (error) {
+      console.error('Error formatting due date:', error)
+      return 'Date invalide'
     }
-    
-    if (time) {
-      const [hours, minutes] = time.split(':')
-      dateStr += ` à ${hours}:${minutes}`
-    }
-    
-    return dateStr
   }
 
   const isOverdue = (date: string, time?: string | null) => {
-    const dueDate = new Date(date)
-    if (time) {
-      const [hours, minutes] = time.split(':')
-      dueDate.setHours(parseInt(hours), parseInt(minutes))
+    try {
+      const dueDate = new Date(date)
+      if (time) {
+        const [hours, minutes] = time.split(':')
+        dueDate.setHours(parseInt(hours), parseInt(minutes))
+      } else {
+        dueDate.setHours(23, 59, 59)
+      }
+      return dueDate < new Date()
+    } catch (error) {
+      console.error('Error checking if overdue:', error)
+      return false
     }
-    return dueDate < new Date()
   }
 
   const getChecklistProgress = () => {
-    if (todo.checklist_count === 0) return null
-    return `${todo.completed_checklist_count}/${todo.checklist_count}`
+    try {
+      if (todo.checklist_count === 0) return null
+      return `${todo.completed_checklist_count}/${todo.checklist_count}`
+    } catch (error) {
+      console.error('Error getting checklist progress:', error)
+      return null
+    }
   }
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!showMenu) {
+      onEdit()
+    }
+  }
+
+
 
   return (
     <div 
-      ref={drag}
+      ref={drag as any}
       className={`todo-card ${isDragging ? 'todo-card--dragging' : ''}`}
-      onClick={onEdit}
+      onClick={handleCardClick}
     >
-      {todo.labels.length > 0 && (
-        <div className="todo-labels">
-          {todo.labels.map(label => (
-            <span
-              key={label.id}
-              className="todo-label"
-              style={{ backgroundColor: label.color }}
-              title={label.name || 'Label sans nom'}
-            >
-              {label.name && (
-                <span className="todo-label-text">{label.name}</span>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
+      <TodoLabels 
+        labels={todo.labels || []}
+        showAddButton={false}
+      />
 
       <div className="todo-content">
-        <h4 className="todo-title">{todo.title}</h4>
+        <h4 className="todo-title">{todo.title || 'Titre manquant'}</h4>
         {todo.description && (
           <p className="todo-description">{todo.description}</p>
         )}
       </div>
+
+      {todo.checklist_items && todo.checklist_items.length > 0 && (
+        <Checklist
+          items={todo.checklist_items}
+          onItemToggle={(itemId, completed) => {
+            // TODO: Appeler API pour mettre à jour l'item
+            console.log('Toggle checklist item:', itemId, completed)
+          }}
+          onItemUpdate={(itemId, text) => {
+            // TODO: Appeler API pour mettre à jour l'item
+            console.log('Update checklist item:', itemId, text)
+          }}
+          onItemDelete={(itemId) => {
+            // TODO: Appeler API pour supprimer l'item
+            console.log('Delete checklist item:', itemId)
+          }}
+          onItemAdd={(text) => {
+            // TODO: Appeler API pour ajouter un item
+            console.log('Add checklist item:', text)
+          }}
+        />
+      )}
 
       <div className="todo-footer">
         <div className="todo-footer-left">

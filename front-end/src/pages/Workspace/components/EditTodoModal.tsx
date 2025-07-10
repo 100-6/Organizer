@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Modal, FormInput, FormTextarea, Button } from '../../../components'
+import TodoLabels from './TodoLabels'
+import Checklist from './Checklist'
+import CreateLabelMenu from './CreateLabelMenu'
 import './EditTodoModal.css'
 
 interface Todo {
@@ -16,6 +19,14 @@ interface Todo {
   checklist_count: number
   completed_checklist_count: number
   labels: Label[]
+  checklist_items?: ChecklistItem[]
+}
+
+interface ChecklistItem {
+  id: number
+  text: string
+  completed: boolean
+  position: number
 }
 
 interface Label {
@@ -41,6 +52,8 @@ interface EditTodoModalProps {
   onSubmit: (todoId: number, todoData: any) => void
   labels: Label[]
   members: Member[]
+  workspaceId: string
+  onLabelsUpdated: () => void
 }
 
 const EditTodoModal = ({ 
@@ -49,7 +62,9 @@ const EditTodoModal = ({
   todo, 
   onSubmit, 
   labels, 
-  members 
+  members,
+  workspaceId,
+  onLabelsUpdated
 }: EditTodoModalProps) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -60,6 +75,9 @@ const EditTodoModal = ({
     selectedLabels: [] as number[]
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showCreateLabelMenu, setShowCreateLabelMenu] = useState(false)
+  const [labelError, setLabelError] = useState('')
+  const [showLabelSelectorMenu, setShowLabelSelectorMenu] = useState(false)
 
   useEffect(() => {
     if (todo && isOpen) {
@@ -69,7 +87,7 @@ const EditTodoModal = ({
         assignedTo: todo.assigned_to ? todo.assigned_to.toString() : '',
         dueDate: todo.due_date || '',
         dueTime: todo.due_time || '',
-        selectedLabels: todo.labels.map(label => label.id)
+        selectedLabels: todo.labels && Array.isArray(todo.labels) ? todo.labels.map(label => label.id) : []
       })
     }
   }, [todo, isOpen])
@@ -89,6 +107,8 @@ const EditTodoModal = ({
         dueTime: formData.dueTime || null,
         labels: formData.selectedLabels
       })
+      onClose()
+      onLabelsUpdated() // force le refresh après fermeture
     } catch (error) {
       console.error('Error updating todo:', error)
     } finally {
@@ -103,6 +123,58 @@ const EditTodoModal = ({
         ? prev.selectedLabels.filter(id => id !== labelId)
         : [...prev.selectedLabels, labelId]
     }))
+  }
+
+  const handleCreateLabel = async (labelData: { name: string; color: string }) => {
+    setLabelError('')
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch('/api/labels', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: labelData.name,
+          color: labelData.color,
+          workspaceId: workspaceId
+        })
+      })
+      if (response.ok) {
+        const newLabel = await response.json()
+        // Associer le label à la todo si on est en édition
+        if (todo && newLabel.label && newLabel.label.id) {
+          await fetch(`/api/todos/${todo.id}/labels`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ labelId: newLabel.label.id })
+          })
+        }
+        // Rafraîchir la liste des labels
+        onLabelsUpdated()
+        // Ajouter automatiquement le nouveau label à la todo
+        setFormData(prev => ({
+          ...prev,
+          selectedLabels: [...prev.selectedLabels, newLabel.label.id]
+        }))
+        setShowCreateLabelMenu(false)
+      } else {
+        const data = await response.json()
+        setLabelError(data.error || 'Erreur lors de la création du label')
+      }
+    } catch (error) {
+      console.error('Error creating label:', error)
+      setLabelError('Erreur de connexion')
+    }
+  }
+
+  const handleAddChecklistItem = (text: string) => {
+    // TODO: Appeler API pour ajouter un item de checklist
+    console.log('Add checklist item:', text)
   }
 
   const handleClose = () => {
@@ -193,9 +265,9 @@ const EditTodoModal = ({
           </div>
         </div>
 
-        {labels.length > 0 && (
-          <div className="form-group">
-            <label className="form-label">Labels</label>
+        <div className="form-group">
+          <label className="form-label">Labels</label>
+          {labels.length > 0 && (
             <div className="labels-grid">
               {labels.map(label => (
                 <button
@@ -214,8 +286,61 @@ const EditTodoModal = ({
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="small"
+            onClick={() => setShowCreateLabelMenu(true)}
+            disabled={isSubmitting}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Gérer les labels
+          </Button>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Checklist</label>
+          {todo.checklist_items && todo.checklist_items.length > 0 ? (
+            <Checklist
+              items={todo.checklist_items}
+              onItemToggle={(itemId, completed) => {
+                // TODO: Appeler API pour mettre à jour l'item
+                console.log('Toggle checklist item:', itemId, completed)
+              }}
+              onItemUpdate={(itemId, text) => {
+                // TODO: Appeler API pour mettre à jour l'item
+                console.log('Update checklist item:', itemId, text)
+              }}
+              onItemDelete={(itemId) => {
+                // TODO: Appeler API pour supprimer l'item
+                console.log('Delete checklist item:', itemId)
+              }}
+              onItemAdd={(text) => {
+                // TODO: Appeler API pour ajouter un item
+                console.log('Add checklist item:', text)
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              className="add-checklist-button"
+              onClick={() => {
+                // TODO: Créer une checklist pour cette todo
+                console.log('Add checklist to todo:', todo.id)
+              }}
+              disabled={isSubmitting}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Ajouter une checklist
+            </button>
+          )}
+        </div>
 
         <div className="todo-meta">
           <div className="todo-meta-item">
@@ -255,6 +380,16 @@ const EditTodoModal = ({
           </Button>
         </div>
       </form>
+
+      <CreateLabelMenu
+        isOpen={showCreateLabelMenu}
+        onClose={() => {
+          setShowCreateLabelMenu(false)
+          setLabelError('')
+        }}
+        onSubmit={handleCreateLabel}
+        error={labelError}
+      />
     </Modal>
   )
 }

@@ -8,6 +8,7 @@ interface ButtonProps {
   disabled?: boolean
   onClick?: () => void
   type?: 'button' | 'submit' | 'reset'
+  className?: string
 }
 
 const Button = ({ 
@@ -16,13 +17,14 @@ const Button = ({
   size = 'medium', 
   disabled = false, 
   onClick,
-  type = 'button'
+  type = 'button',
+  className = ''
 }: ButtonProps) => {
-  const className = `btn btn--${variant} btn--${size} ${disabled ? 'btn--disabled' : ''}`
+  const buttonClassName = `btn btn--${variant} btn--${size} ${disabled ? 'btn--disabled' : ''} ${className}`.trim()
 
   return (
     <button
-      className={className}
+      className={buttonClassName}
       disabled={disabled}
       onClick={onClick}
       type={type}

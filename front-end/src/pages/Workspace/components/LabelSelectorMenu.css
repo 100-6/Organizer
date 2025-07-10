@@ -1,0 +1,128 @@
+.label-selector-menu-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label-selector-menu {
+  background: #23272f;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  width: 340px;
+  max-width: 95vw;
+  padding: 0 0 16px 0;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.label-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px 8px 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.label-selector-close {
+  background: none;
+  border: 1.5px solid #fff2;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.label-selector-close:hover {
+  background: #fff1;
+}
+
+.label-selector-search {
+  margin: 0 20px 10px 20px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1.5px solid #374151;
+  background: #181c23;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+}
+
+.label-selector-list {
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0 8px 0 8px;
+  padding: 0 8px;
+}
+
+.label-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #2d323c;
+}
+
+.label-selector-checkbox {
+  accent-color: #10b981;
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
+}
+
+.label-selector-color {
+  width: 32px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-right: 2px;
+  border: 1.5px solid #fff2;
+}
+
+.label-selector-name {
+  flex: 1;
+  font-size: 15px;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.label-selector-edit {
+  background: none;
+  border: none;
+  color: #fff8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+  margin-left: 4px;
+}
+.label-selector-edit:hover {
+  background: #fff1;
+  color: #fff;
+}
+
+.label-selector-create {
+  margin: 18px 20px 0 20px;
+  width: calc(100% - 40px);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+@media (max-width: 500px) {
+  .label-selector-menu {
+    width: 98vw;
+    min-width: 0;
+    padding: 0 0 10px 0;
+  }
+  .label-selector-list {
+    max-height: 180px;
+  }
+} 

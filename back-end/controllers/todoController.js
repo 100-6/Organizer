@@ -1,69 +1,89 @@
 const pool = require('../config/database');
 
 const createTodo = async (req, res) => {
+    const client = await pool.connect();
     try {
-        const { title, description, listId, assignedTo, dueDate, dueTime, position = 0 } = req.body;
+        const { title, description, listId, assignedTo, dueDate, dueTime, position = 0, labels } = req.body;
         const userId = req.user.id;
+        await client.query('BEGIN');
 
-        const listResult = await pool.query(
+        const listResult = await client.query(
             'SELECT workspace_id FROM lists WHERE id = $1',
             [listId]
         );
 
         if (listResult.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Liste introuvable'
-            });
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Liste introuvable' });
         }
 
-        const memberCheck = await pool.query(
+        const memberCheck = await client.query(
             'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
             [listResult.rows[0].workspace_id, userId]
         );
 
         if (memberCheck.rows.length === 0) {
-            return res.status(403).json({
-                error: 'Accès refusé à cette liste'
-            });
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Accès refusé à cette liste' });
         }
 
         if (assignedTo) {
-            const assignedMemberCheck = await pool.query(
+            const assignedMemberCheck = await client.query(
                 'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
                 [listResult.rows[0].workspace_id, assignedTo]
             );
 
             if (assignedMemberCheck.rows.length === 0) {
-                return res.status(400).json({
-                    error: 'L\'utilisateur assigné n\'est pas membre du workspace'
-                });
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'L\'utilisateur assigné n\'est pas membre du workspace' });
             }
         }
 
-        const result = await pool.query(
+        const result = await client.query(
             'INSERT INTO todos (title, description, list_id, assigned_to, due_date, due_time, position) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
             [title, description || null, listId, assignedTo || null, dueDate || null, dueTime || null, position]
         );
+        const todoId = result.rows[0].id;
 
-        const todoResult = await pool.query(`
+        // Associer les labels si fournis
+        if (Array.isArray(labels) && labels.length > 0) {
+            for (const labelId of labels) {
+                await client.query(
+                    'INSERT INTO todo_labels (todo_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                    [todoId, labelId]
+                );
+            }
+        }
+
+        // Récupérer la todo avec les labels associés
+        const todoResult = await client.query(`
             SELECT 
                 t.*,
                 u.username as assigned_username
             FROM todos t
             LEFT JOIN users u ON t.assigned_to = u.id
             WHERE t.id = $1
-        `, [result.rows[0].id]);
+        `, [todoId]);
+        const todo = todoResult.rows[0];
+        const labelsResult = await client.query(`
+            SELECT l.id, l.name, l.color
+            FROM labels l
+            JOIN todo_labels tl ON l.id = tl.label_id
+            WHERE tl.todo_id = $1
+        `, [todoId]);
+        todo.labels = labelsResult.rows;
 
+        await client.query('COMMIT');
         res.status(201).json({
             message: 'Todo créé avec succès',
-            todo: todoResult.rows[0]
+            todo
         });
-
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Erreur lors de la création du todo:', error);
-        res.status(500).json({
-            error: 'Erreur interne du serveur'
-        });
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    } finally {
+        client.release();
     }
 };
 
@@ -114,8 +134,21 @@ const getListTodos = async (req, res) => {
             ORDER BY t.position ASC, t.created_at ASC
         `, [listId]);
 
+        const todos = result.rows;
+
+        // Pour chaque todo, on va chercher ses labels associés
+        for (const todo of todos) {
+            const labelsResult = await pool.query(`
+                SELECT l.id, l.name, l.color
+                FROM labels l
+                JOIN todo_labels tl ON l.id = tl.label_id
+                WHERE tl.todo_id = $1
+            `, [todo.id]);
+            todo.labels = labelsResult.rows;
+        }
+
         res.json({
-            todos: result.rows
+            todos
         });
 
     } catch (error) {
@@ -544,6 +577,20 @@ const updateTodosPositions = async (req, res) => {
     }
 };
 
+const addLabelToTodo = async (req, res) => {
+  try {
+    const { todoId } = req.params;
+    const { labelId } = req.body;
+    await pool.query(
+      'INSERT INTO todo_labels (todo_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [todoId, labelId]
+    );
+    res.json({ message: 'Label associé à la todo' });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de l\'association du label' });
+  }
+};
+
 module.exports = {
     createTodo,
     getListTodos,
@@ -551,5 +598,6 @@ module.exports = {
     updateTodo,
     deleteTodo,
     moveTodo,
-    updateTodosPositions
+    updateTodosPositions,
+    addLabelToTodo
 };

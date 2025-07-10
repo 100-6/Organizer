@@ -8,7 +8,8 @@ import {
   Avatar, 
   Modal, 
   FormInput,
-  FormTextarea
+  FormTextarea,
+  ErrorBoundary
 } from '../../components'
 import WorkspaceHeader from './components/WorkspaceHeader'
 import ListColumn from './components/ListColumn'
@@ -16,6 +17,7 @@ import TodoCard from './components/TodoCard'
 import CreateTodoModal from './components/CreateTodoModal'
 import EditTodoModal from './components/EditTodoModal'
 import CreateLabelModal from './components/CreateLabelModal'
+import LabelManagerModal from './components/LabelManagerModal'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import './Workspace.css'
@@ -61,6 +63,7 @@ interface Todo {
   checklist_count: number
   completed_checklist_count: number
   labels: Label[]
+  workspace_id?: number
 }
 
 interface Label {
@@ -87,12 +90,12 @@ const Workspace = () => {
   const [showCreateTodoModal, setShowCreateTodoModal] = useState(false)
   const [showEditTodoModal, setShowEditTodoModal] = useState(false)
   const [showCreateLabelModal, setShowCreateLabelModal] = useState(false)
+  const [showLabelManagerModal, setShowLabelManagerModal] = useState(false)
   const [selectedListId, setSelectedListId] = useState<number | null>(null)
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [isCreatingList, setIsCreatingList] = useState(false)
-  const [showLabelManagerModal, setShowLabelManagerModal] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -103,6 +106,8 @@ const Workspace = () => {
   const fetchWorkspaceData = async () => {
     try {
       const token = localStorage.getItem('accessToken')
+      
+      console.log('Fetching workspace data for ID:', id)
       
       const [workspaceRes, listsRes, labelsRes] = await Promise.all([
         fetch(`/api/workspaces/${id}`, {
@@ -116,37 +121,69 @@ const Workspace = () => {
         })
       ])
 
+      console.log('API responses:', {
+        workspace: workspaceRes.status,
+        lists: listsRes.status,
+        labels: labelsRes.status
+      })
+
       if (workspaceRes.ok && listsRes.ok) {
         const workspaceData = await workspaceRes.json()
         const listsData = await listsRes.json()
         const labelsData = labelsRes.ok ? await labelsRes.json() : { labels: [] }
+
+        console.log('Parsed data:', {
+          workspace: workspaceData,
+          lists: listsData,
+          labels: labelsData
+        })
 
         setWorkspace(workspaceData.workspace)
         setLists(listsData.lists)
         setLabels(labelsData.labels)
 
         const todosData: { [listId: number]: Todo[] } = {}
-        await Promise.all(
-          listsData.lists.map(async (list: List) => {
-            const todosRes = await fetch(`/api/todos/list/${list.id}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
+        
+        if (listsData.lists && listsData.lists.length > 0) {
+          await Promise.all(
+            listsData.lists.map(async (list: List) => {
+              try {
+                const todosRes = await fetch(`/api/todos/list/${list.id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                })
+                if (todosRes.ok) {
+                  const todosResult = await todosRes.json()
+                  todosData[list.id] = (todosResult.todos || []).map((todo: any) => ({ ...todo, workspace_id: list.workspace_id }))
+                  console.log(`Todos for list ${list.id}:`, todosResult.todos)
+                } else {
+                  console.error(`Failed to fetch todos for list ${list.id}:`, todosRes.status)
+                  todosData[list.id] = []
+                }
+              } catch (err) {
+                console.error(`Error fetching todos for list ${list.id}:`, err)
+                todosData[list.id] = []
+              }
             })
-            if (todosRes.ok) {
-              const todosResult = await todosRes.json()
-              todosData[list.id] = todosResult.todos
-            }
-          })
-        )
-        setTodos(todosData)
+          )
+        }
+        
+        console.log('Final todos data:', todosData)
+        setTodos({ ...todosData })
       } else if (workspaceRes.status === 403) {
         setError('Accès refusé à ce workspace')
       } else if (workspaceRes.status === 401) {
         logout()
         navigate('/login')
       } else {
+        console.error('API error:', {
+          workspace: workspaceRes.status,
+          lists: listsRes.status,
+          labels: labelsRes.status
+        })
         setError('Erreur lors du chargement du workspace')
       }
     } catch (err) {
+      console.error('Error in fetchWorkspaceData:', err)
       setError('Erreur de connexion')
     } finally {
       setIsLoading(false)
@@ -188,6 +225,10 @@ const Workspace = () => {
   }
 
   const handleDeleteList = async (listId: number) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette liste et toutes ses tâches ?')) {
+      return
+    }
+
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/lists/${listId}`, {
@@ -218,14 +259,13 @@ const Workspace = () => {
         body: JSON.stringify({
           ...todoData,
           listId: selectedListId,
-          position: todos[selectedListId!]?.length || 0
+          position: todos[selectedListId!] ? todos[selectedListId!].length : 0,
+          labels: todoData.labels
         })
       })
-
       if (response.ok) {
-        setShowCreateTodoModal(false)
-        setSelectedListId(null)
         await fetchWorkspaceData()
+        setShowCreateTodoModal(false)
       } else {
         const data = await response.json()
         setError(data.error || 'Erreur lors de la création de la tâche')
@@ -260,7 +300,15 @@ const Workspace = () => {
     }
   }
 
+  const handleLabelsUpdated = () => {
+    fetchWorkspaceData()
+  }
+
   const handleDeleteTodo = async (todoId: number) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+      return
+    }
+
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/todos/${todoId}`, {
@@ -332,6 +380,14 @@ const Workspace = () => {
     }
   }
 
+  const handleAddMember = () => {
+    console.log('Ajouter un membre - fonction à implémenter')
+  }
+
+  const handleSettings = () => {
+    console.log('Paramètres du workspace - fonction à implémenter')
+  }
+
   if (isLoading) {
     return <LoadingSpinner message="Chargement du workspace..." fullScreen />
   }
@@ -340,19 +396,21 @@ const Workspace = () => {
     return (
       <div className="workspace-error">
         <h1>Workspace introuvable</h1>
+        <p>Ce workspace n'existe pas ou vous n'avez pas les permissions pour y accéder.</p>
         <Link to="/dashboard">Retour au dashboard</Link>
       </div>
     )
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="workspace-page">
+    <ErrorBoundary>
+      <DndProvider backend={HTML5Backend}>
+        <div className="workspace-page">
         <WorkspaceHeader
           workspace={workspace}
           onCreateLabel={() => setShowCreateLabelModal(true)}
-          onAddMember={() => {}}
-          onSettings={() => {}}
+          onAddMember={handleAddMember}
+          onSettings={handleSettings}
           onManageLabels={() => setShowLabelManagerModal(true)}
         />
 
@@ -378,7 +436,7 @@ const Workspace = () => {
                     setShowCreateTodoModal(true)
                   }}
                   onEditTodo={(todo) => {
-                    setSelectedTodo(todo)
+                    setSelectedTodo({ ...(todo as any), workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
                     setShowEditTodoModal(true)
                   }}
                   onDeleteTodo={handleDeleteTodo}
@@ -444,11 +502,11 @@ const Workspace = () => {
           isOpen={showCreateTodoModal}
           onClose={() => {
             setShowCreateTodoModal(false)
-            setSelectedListId(null)
           }}
           onSubmit={handleCreateTodo}
           labels={labels}
           members={workspace.members}
+          selectedListId={selectedListId}
         />
 
         <EditTodoModal
@@ -461,6 +519,8 @@ const Workspace = () => {
           onSubmit={handleUpdateTodo}
           labels={labels}
           members={workspace.members}
+          workspaceId={id!}
+          onLabelsUpdated={handleLabelsUpdated}
         />
 
         <CreateLabelModal
@@ -468,18 +528,18 @@ const Workspace = () => {
           onClose={() => setShowCreateLabelModal(false)}
           onSubmit={handleCreateLabel}
         />
-        {showLabelManagerModal && (
-          <LabelManagerModal
-            isOpen={showLabelManagerModal}
-            onClose={() => setShowLabelManagerModal(false)}
-            labels={labels}
-            onLabelUpdated={async () => await fetchWorkspaceData()}
-            onLabelDeleted={async () => await fetchWorkspaceData()}
-            workspaceId={id}
-          />
-        )}
+
+        <LabelManagerModal
+          isOpen={showLabelManagerModal}
+          onClose={() => setShowLabelManagerModal(false)}
+          labels={labels}
+          onLabelUpdated={fetchWorkspaceData}
+          onLabelDeleted={fetchWorkspaceData}
+          workspaceId={id}
+        />
       </div>
     </DndProvider>
+    </ErrorBoundary>
   )
 }
 

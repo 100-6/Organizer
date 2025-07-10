@@ -2,7 +2,7 @@ import './FormInput.css'
 
 interface FormInputProps {
   label: string
-  type?: 'text' | 'email' | 'password'
+  type?: 'text' | 'email' | 'password' | 'date' | 'time'
   id: string
   name: string
   value: string

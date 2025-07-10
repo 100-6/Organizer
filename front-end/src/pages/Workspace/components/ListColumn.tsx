@@ -110,7 +110,7 @@ const ListColumn = ({
 
   return (
     <div 
-      ref={drop}
+      ref={drop as any}
       className={`list-column ${isOver ? 'list-column--dragover' : ''}`}
     >
       <div className="list-header">
@@ -182,15 +182,22 @@ const ListColumn = ({
 
       <div className="list-content">
         <div className="todos-container">
-          {todos.map(todo => (
-            <TodoCard
-              key={todo.id}
-              todo={todo}
-              labels={labels}
-              onEdit={() => onEditTodo(todo)}
-              onDelete={() => onDeleteTodo(todo.id)}
-            />
-          ))}
+          {todos && Array.isArray(todos) && todos.map(todo => {
+            if (!todo || !todo.id) {
+              console.warn('Invalid todo in list:', todo)
+              return null
+            }
+            return (
+              <TodoCard
+                key={todo.id}
+                todo={todo}
+                labels={labels}
+                onEdit={() => onEditTodo(todo)}
+                onDelete={() => onDeleteTodo(todo.id)}
+                onLabelsOrTodosUpdated={onListNameUpdated || (() => {})}
+              />
+            )
+          })}
         </div>
         
         <Button 

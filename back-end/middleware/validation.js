@@ -288,6 +288,60 @@ const validateTodoMove = (req, res, next) => {
     next();
 };
 
+const validateLabelCreation = (req, res, next) => {
+    const { color, workspaceId } = req.body;
+    const { name } = req.body;
+    
+    const missing = validateRequired(['color', 'workspaceId'], req.body);
+    if (missing.length > 0) {
+        return res.status(400).json({
+            error: `Champs requis manquants: ${missing.join(', ')}`
+        });
+    }
+
+    if (isNaN(workspaceId)) {
+        return res.status(400).json({
+            error: 'ID workspace invalide'
+        });
+    }
+
+    const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    if (!colorRegex.test(color)) {
+        return res.status(400).json({
+            error: 'Format de couleur invalide (format hexadécimal requis: #000000)'
+        });
+    }
+
+    if (name && (name.length < 1 || name.length > 50)) {
+        return res.status(400).json({
+            error: 'Le nom du label doit contenir entre 1 et 50 caractères'
+        });
+    }
+
+    next();
+};
+
+const validateLabelUpdate = (req, res, next) => {
+    const { name, color } = req.body;
+    
+    if (color) {
+        const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+        if (!colorRegex.test(color)) {
+            return res.status(400).json({
+                error: 'Format de couleur invalide (format hexadécimal requis: #000000)'
+            });
+        }
+    }
+
+    if (name && (name.length < 1 || name.length > 50)) {
+        return res.status(400).json({
+            error: 'Le nom du label doit contenir entre 1 et 50 caractères'
+        });
+    }
+
+    next();
+};
+
 module.exports = {
     validateEmail,
     validatePassword,
@@ -304,5 +358,7 @@ module.exports = {
     validateListUpdate,
     validateTodoCreation,
     validateTodoUpdate,
-    validateTodoMove
+    validateTodoMove,
+    validateLabelCreation,
+    validateLabelUpdate
 };

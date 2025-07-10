@@ -1,0 +1,90 @@
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.checklist-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.checklist-checkbox:hover {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.checklist-checkbox--checked {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.checklist-checkbox--checked:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.checklist-item-text {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  word-break: break-word;
+}
+
+.checklist-item-text:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.checklist-item-text--completed {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.checklist-item-input {
+  flex: 1;
+  font-size: 13px;
+  border: 2px solid #10b981;
+  border-radius: 4px;
+  padding: 2px 4px;
+  outline: none;
+  background: white;
+}
+
+.checklist-item-delete {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.checklist-item:hover .checklist-item-delete {
+  opacity: 1;
+}
+
+.checklist-item-delete:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+} 
