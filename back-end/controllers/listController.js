@@ -272,8 +272,6 @@ const deleteList = async (req, res) => {
 const updateListsPositions = async (req, res) => {
     const client = await pool.connect();
     try {
-        await client.query('BEGIN');
-
         const { lists } = req.body;
         const userId = req.user.id;
 
@@ -306,15 +304,21 @@ const updateListsPositions = async (req, res) => {
             });
         }
 
-        for (let i = 0; i < lists.length; i++) {
-            const { id, position } = lists[i];
+        await client.query('BEGIN');
+
+        const sortedLists = [...lists].sort((a, b) => a.id - b.id);
+
+        for (const { id, position } of sortedLists) {
             if (isNaN(id) || position === undefined) {
-                throw new Error(`Données invalides pour la liste ${id}`);
+                await client.query('ROLLBACK');
+                return res.status(400).json({
+                    error: `Données invalides pour la liste ${id}`
+                });
             }
 
             await client.query(
                 'UPDATE lists SET position = $1 WHERE id = $2',
-                [position, id]
+                [parseInt(position), parseInt(id)]
             );
         }
 

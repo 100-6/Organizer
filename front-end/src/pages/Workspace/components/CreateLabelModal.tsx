@@ -99,12 +99,27 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
 
   const usedColors = getUsedColors()
 
-  return (
+  // Dans front-end/src/pages/Workspace/components/CreateLabelModal.tsx
+// Remplacer la partie du modal pour empêcher la fermeture
+
+return (
     <div className="create-label-overlay" onClick={handleClose}>
-      <div className="create-label-modal" onClick={e => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}>
+      <div 
+        className="create-label-modal" 
+        onClick={(e) => {
+          e.stopPropagation()
+          e.preventDefault()
+        }}
+      >
         <div className="create-label-header">
           <h3 className="create-label-title">Create New Label</h3>
-          <button className="create-label-close" onClick={handleClose}>
+          <button 
+            className="create-label-close" 
+            onClick={(e) => {
+              e.stopPropagation()
+              handleClose()
+            }}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -128,6 +143,7 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
                 setLabelName(e.target.value)
                 setError('')
               }}
+              onClick={(e) => e.stopPropagation()}
               placeholder="Enter label name..."
               autoFocus
               required
@@ -153,7 +169,10 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
                     type="button"
                     className={`create-color-option ${selectedColor === color ? 'create-color-option--selected' : ''} ${isUsed ? 'create-color-option--used' : ''}`}
                     style={{ backgroundColor: color }}
-                    onClick={() => !isUsed && setSelectedColor(color)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!isUsed) setSelectedColor(color)
+                    }}
                     disabled={isUsed}
                     title={isUsed ? 'Color already used' : `Select ${color}`}
                   >
@@ -175,7 +194,10 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
             <button
               type="button"
               className="create-cancel-button"
-              onClick={handleClose}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleClose()
+              }}
               disabled={isCreating}
             >
               Cancel
@@ -184,6 +206,7 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
               type="submit"
               className="create-submit-button"
               disabled={isCreating || !labelName.trim()}
+              onClick={(e) => e.stopPropagation()}
             >
               {isCreating ? 'Creating...' : 'Create Label'}
             </button>

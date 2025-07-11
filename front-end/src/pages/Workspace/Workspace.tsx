@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { 
@@ -90,6 +90,8 @@ const Workspace = () => {
   
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [isCreatingList, setIsCreatingList] = useState(false)
+
+  const moveTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -341,6 +343,20 @@ const Workspace = () => {
   }
 
   const moveList = async (from: number, to: number) => {
+    const newOrder = lists.map((list, idx) => ({
+      id: list.id,
+      position: idx
+    }))
+    
+    const updatedOrder = [...newOrder]
+    const [movedItem] = updatedOrder.splice(from, 1)
+    updatedOrder.splice(to, 0, movedItem)
+    
+    const finalOrder = updatedOrder.map((item, idx) => ({
+      id: item.id,
+      position: idx
+    }))
+
     setLists(prevLists => update(prevLists, {
       $splice: [
         [from, 1],
@@ -348,25 +364,19 @@ const Workspace = () => {
       ]
     }))
 
-    // Met à jour la position de chaque liste dans l'ordre actuel
-    const newOrder = lists.map((list, idx) => ({
-      id: list.id,
-      position: idx
-    }))
-
     try {
       const token = localStorage.getItem('accessToken')
-      await fetch('/api/lists/update-positions', {
-        method: 'POST',
+      await fetch('/api/lists/positions', {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ lists: newOrder })
+        body: JSON.stringify({ lists: finalOrder })
       })
-      // Optionnel : await fetchWorkspaceData()
     } catch (err) {
-      // Optionnel : afficher une erreur ou recharger les données
+      console.error('Erreur lors de la mise à jour des positions:', err)
+      fetchWorkspaceData()
     }
   }
 
