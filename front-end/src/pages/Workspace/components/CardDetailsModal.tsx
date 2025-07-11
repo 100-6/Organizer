@@ -91,19 +91,6 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     onUpdate(todo.id, { description: newDescription || null })
   }
 
-  const handleRemoveLabel = async (labelId: number) => {
-    try {
-      const token = localStorage.getItem('accessToken')
-      await fetch(`/api/todos/${todo.id}/labels/${labelId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      onLabelsUpdated()
-    } catch (error) {
-      console.error('Error removing label:', error)
-    }
-  }
-
   const handleAddLabel = async (labelId: number) => {
     try {
       const token = localStorage.getItem('accessToken')
@@ -118,6 +105,19 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       onLabelsUpdated()
     } catch (error) {
       console.error('Error adding label:', error)
+    }
+  }
+
+  const handleRemoveLabel = async (labelId: number) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      await fetch(`/api/todos/${todo.id}/labels/${labelId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      onLabelsUpdated()
+    } catch (error) {
+      console.error('Error removing label:', error)
     }
   }
 
@@ -194,14 +194,16 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                       style={{ backgroundColor: label.color }}
                     >
                       {label.name || 'Label'}
-                      <button
-                        className="card-label-remove"
-                        onClick={() => handleRemoveLabel(label.id)}
-                      >
-                        ×
-                      </button>
                     </div>
                   ))}
+                  <button
+                    className="card-label-add-button"
+                    onClick={() => setShowLabelMenu(true)}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
             )}

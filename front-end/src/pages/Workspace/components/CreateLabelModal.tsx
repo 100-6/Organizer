@@ -17,7 +17,6 @@ interface CreateLabelModalProps {
   existingLabels: Label[]
 }
 
-// Toutes les couleurs disponibles (en excluant les couleurs de base si souhaité)
 const AVAILABLE_COLORS = [
   '#EF4444', '#F59E0B', '#FBBF24', '#10B981', '#059669', '#06B6D4',
   '#3B82F6', '#1D4ED8', '#6366F1', '#8B5CF6', '#7C3AED', '#A855F7',

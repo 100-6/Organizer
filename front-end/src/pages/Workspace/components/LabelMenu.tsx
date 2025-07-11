@@ -87,7 +87,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-              name: null, // Pas de nom par défaut
+              name: null,
               color: baseLabel.color,
               workspaceId: workspaceId
             })
@@ -102,7 +102,6 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   }
 
   const getAllLabels = () => {
-    // Trier : d'abord les labels de base (par ordre défini), puis les personnalisés
     const baseColors = BASE_LABELS.map(base => base.color)
     const baseLabels = BASE_LABELS.map(baseLabel => {
       return labels.find(label => label.color === baseLabel.color)
@@ -118,9 +117,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   )
 
   const isLabelSelected = (labelId: number) => {
-    const selected = selectedLabels.some(label => label.id === labelId)
-    console.log('Label', labelId, 'selected:', selected, 'selectedLabels:', selectedLabels.map(l => l.id))
-    return selected
+    return selectedLabels.some(label => label.id === labelId)
   }
 
   const handleLabelToggle = (label: Label) => {
@@ -256,6 +253,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
             <div className="labels-list">
               {filteredLabels.map(label => {
                 const isBaseLabel = BASE_LABELS.some(base => base.color === label.color)
+                const isSelected = isLabelSelected(label.id)
                 
                 return (
                   <div key={label.id} className="label-item-row">
@@ -263,7 +261,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                       <input
                         type="checkbox"
                         className="label-checkbox"
-                        checked={isLabelSelected(label.id)}
+                        checked={isSelected}
                         onChange={() => handleLabelToggle(label)}
                       />
                     </label>
@@ -362,10 +360,6 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
         onLabelsUpdated={onLabelsUpdated}
         workspaceId={workspaceId}
         existingLabels={labels}
-        onOpenLabelMenu={() => {
-          setShowCreateModal(false)
-          // Le menu de labels reste ouvert puisque c'est le composant parent
-        }}
       />
     </>
   )

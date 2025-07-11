@@ -169,6 +169,7 @@
     flex-wrap: wrap;
     gap: 4px;
     margin-bottom: 8px;
+    align-items: center;
   }
   
   .card-label-item {
@@ -189,20 +190,24 @@
     opacity: 0.8;
   }
   
-  .card-label-remove {
-    background: none;
+  .card-label-add-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 24px;
+    background: #e4e6ea;
     border: none;
-    color: white;
-    font-size: 14px;
+    border-radius: 4px;
+    color: #5e6c84;
     cursor: pointer;
-    padding: 0;
+    transition: all 0.2s ease;
     margin-left: 4px;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
   }
   
-  .card-label-remove:hover {
-    opacity: 1;
+  .card-label-add-button:hover {
+    background: #dfe1e6;
+    color: #172b4d;
   }
   
   .sidebar-section {
