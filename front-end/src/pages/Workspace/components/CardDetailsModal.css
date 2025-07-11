@@ -200,14 +200,13 @@
     align-items: center;
     justify-content: center;
     width: 32px;
-    height: 24px;
+    height: 32px;
     background: #e4e6ea;
     border: none;
     border-radius: 4px;
     color: #5e6c84;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-left: 4px;
   }
   
   .card-label-add-button:hover {

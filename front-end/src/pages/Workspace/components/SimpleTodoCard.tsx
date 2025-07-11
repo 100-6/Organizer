@@ -1,5 +1,5 @@
-import React from 'react'
-import { useDrag } from 'react-dnd'
+import React, { useRef } from 'react'
+import { useDrag, useDrop } from 'react-dnd'
 import './SimpleTodoCard.css'
 
 interface Todo {
@@ -29,16 +29,90 @@ interface Label {
 interface SimpleTodoCardProps {
   todo: Todo
   onClick: () => void
+  index: number
+  moveTodo: (dragIndex: number, hoverIndex: number) => void
 }
 
-const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick }) => {
+const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, index, moveTodo }) => {
+  const ref = useRef<HTMLDivElement>(null)
+
+  const [{ handlerId, isOver }, drop] = useDrop<
+    { index: number; id: number; listId: number },
+    void,
+    { handlerId: any; isOver: boolean }
+  >({
+    accept: 'todo',
+    collect(monitor) {
+      return {
+        handlerId: monitor.getHandlerId(),
+        isOver: monitor.isOver(),
+      }
+    },
+    hover(item, monitor) {
+      if (!ref.current) {
+        return
+      }
+      const dragIndex = item.index
+      const hoverIndex = index
+
+      // Ne rien faire si on survole le même élément
+      if (dragIndex === hoverIndex) {
+        return
+      }
+
+      // Ne réorganiser que si c'est dans la même liste
+      if (item.listId !== todo.list_id) {
+        return
+      }
+
+      // Déterminer le rectangle du survol
+      const hoverBoundingRect = ref.current?.getBoundingClientRect()
+
+      // Obtenir le point milieu vertical
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2
+
+      // Déterminer la position de la souris
+      const clientOffset = monitor.getClientOffset()
+
+      // Obtenir les pixels vers le haut
+      const hoverClientY = (clientOffset?.y ?? 0) - hoverBoundingRect.top
+
+      // Faire le glissement vers le bas seulement quand la souris a croisé la moitié de la hauteur de l'élément
+      // Quand on traîne vers le bas, on bouge seulement quand le curseur est en dessous de 50%
+      // Quand on traîne vers le haut, on bouge seulement quand le curseur est au dessus de 50%
+
+      // Traîner vers le bas
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return
+      }
+
+      // Traîner vers le haut
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return
+      }
+
+      // Effectuer le mouvement
+      moveTodo(dragIndex, hoverIndex)
+
+      // Note: nous mutons l'élément monitor ici !
+      // Généralement c'est mieux d'éviter les mutations,
+      // mais c'est correct ici pour des raisons de performance
+      // et pour éviter les appels de rendu coûteux.
+      item.index = hoverIndex
+    },
+  })
+
   const [{ isDragging }, drag] = useDrag({
     type: 'todo',
-    item: { id: todo.id, listId: todo.list_id },
+    item: () => {
+      return { id: todo.id, index, listId: todo.list_id }
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
   })
+
+  drag(drop(ref))
 
   const formatDueDate = (date: string, time?: string | null) => {
     try {
@@ -95,8 +169,9 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick }) => {
 
   return (
     <div 
-      ref={drag as any}
-      className={`simple-todo-card ${isDragging ? 'simple-todo-card--dragging' : ''}`}
+      ref={ref}
+      data-handler-id={handlerId}
+      className={`simple-todo-card ${isDragging ? 'simple-todo-card--dragging' : ''} ${isOver && !isDragging ? 'simple-todo-card--drag-over' : ''}`}
       onClick={onClick}
     >
       {hasLabels && (

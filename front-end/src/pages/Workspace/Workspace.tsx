@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { 
@@ -90,8 +90,6 @@ const Workspace = () => {
   
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [isCreatingList, setIsCreatingList] = useState(false)
-
-  const moveTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -320,6 +318,39 @@ const Workspace = () => {
     }
   }
 
+  const handleUpdateTodosOrder = async (listId: number, reorderedTodos: Todo[]) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      
+      // Créer le payload avec les nouvelles positions
+      const todosWithNewPositions = reorderedTodos.map((todo, index) => ({
+        id: todo.id,
+        position: index,
+        listId: listId
+      }))
+
+      const response = await fetch('/api/todos/positions', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          todos: todosWithNewPositions
+        })
+      })
+
+      if (!response.ok) {
+        // En cas d'erreur, recharger les données pour remettre l'ordre correct
+        await fetchWorkspaceData()
+      }
+    } catch (err) {
+      console.error('Error updating todos order:', err)
+      // En cas d'erreur, recharger les données
+      await fetchWorkspaceData()
+    }
+  }
+
   const handleOpenCardDetails = (todo: Todo) => {
     setSelectedTodo({ ...todo, workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
     setShowCardDetailsModal(true)
@@ -343,20 +374,6 @@ const Workspace = () => {
   }
 
   const moveList = async (from: number, to: number) => {
-    const newOrder = lists.map((list, idx) => ({
-      id: list.id,
-      position: idx
-    }))
-    
-    const updatedOrder = [...newOrder]
-    const [movedItem] = updatedOrder.splice(from, 1)
-    updatedOrder.splice(to, 0, movedItem)
-    
-    const finalOrder = updatedOrder.map((item, idx) => ({
-      id: item.id,
-      position: idx
-    }))
-
     setLists(prevLists => update(prevLists, {
       $splice: [
         [from, 1],
@@ -364,19 +381,24 @@ const Workspace = () => {
       ]
     }))
 
+    // Met à jour la position de chaque liste dans l'ordre actuel
+    const newOrder = lists.map((list, idx) => ({
+      id: list.id,
+      position: idx
+    }))
+
     try {
       const token = localStorage.getItem('accessToken')
-      await fetch('/api/lists/positions', {
-        method: 'PATCH',
+      await fetch('/api/lists/update-positions', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ lists: finalOrder })
+        body: JSON.stringify({ lists: newOrder })
       })
+      // Optionnel : await fetchWorkspaceData()
     } catch (err) {
-      console.error('Erreur lors de la mise à jour des positions:', err)
-      fetchWorkspaceData()
     }
   }
 
@@ -428,6 +450,7 @@ const Workspace = () => {
                     onDeleteList={() => handleDeleteList(list.id)}
                     onMoveTodo={handleMoveTodo}
                     onListNameUpdated={fetchWorkspaceData}
+                    onUpdateTodosOrder={(reorderedTodos) => handleUpdateTodosOrder(list.id, reorderedTodos)}
                     index={idx}
                     moveList={moveList}
                   />

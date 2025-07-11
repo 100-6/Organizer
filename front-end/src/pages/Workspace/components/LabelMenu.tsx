@@ -1,4 +1,3 @@
-// Dans front-end/src/pages/Workspace/components/LabelMenu.tsx
 import React, { useState, useRef, useEffect } from 'react'
 import CreateLabelModal from './CreateLabelModal'
 import './LabelMenu.css'
@@ -51,6 +50,11 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Ne pas fermer si le modal de création de label est ouvert
+      if (showCreateModal) {
+        return
+      }
+      
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         onClose()
       }
@@ -63,7 +67,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, showCreateModal]) // Ajout de showCreateModal dans les dépendances
 
   useEffect(() => {
     if (isOpen && labels.length >= 0) {
@@ -119,10 +123,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     return selectedLabels.some(label => label.id === labelId)
   }
 
-  const handleLabelToggle = (label: Label, event: React.MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    
+  const handleLabelToggle = (label: Label) => {
     const isSelected = isLabelSelected(label.id)
     
     if (isSelected) {
@@ -132,10 +133,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     }
   }
 
-  const handleEditName = (label: Label, event: React.MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    
+  const handleEditName = (label: Label) => {
     setEditingLabelId(label.id)
     setEditName(label.name || '')
     setError('')
@@ -221,9 +219,8 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     }
   }
 
-  const handleMenuClick = (event: React.MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
+  const handleCreateModalClose = () => {
+    setShowCreateModal(false)
   }
 
   if (!isOpen) return null
@@ -231,7 +228,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   return (
     <>
       <div className="label-menu-overlay" onClick={onClose}>
-        <div className="label-menu-trello" ref={menuRef} onClick={handleMenuClick}>
+        <div className="label-menu-trello" ref={menuRef} onClick={(e) => e.stopPropagation()}>
           <div className="label-menu-header">
             <h3 className="label-menu-title">Labels</h3>
             <button className="label-menu-close" onClick={onClose}>
@@ -248,7 +245,6 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
               placeholder="Search labels..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onClick={handleMenuClick}
             />
           </div>
 
@@ -268,17 +264,17 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                 
                 return (
                   <div key={label.id} className="label-item-row">
-                    <label className="label-checkbox-container" onClick={handleMenuClick}>
+                    <label className="label-checkbox-container">
                       <input
                         type="checkbox"
                         className="label-checkbox"
                         checked={isSelected}
-                        onChange={(e) => handleLabelToggle(label, e as any)}
+                        onChange={() => handleLabelToggle(label)}
                       />
                     </label>
 
                     {editingLabelId === label.id ? (
-                      <div className="label-edit-container" onClick={handleMenuClick}>
+                      <div className="label-edit-container">
                         <input
                           type="text"
                           value={editName}
@@ -296,15 +292,11 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                           className="label-name-input"
                           placeholder="Enter label name..."
                           autoFocus
-                          onClick={handleMenuClick}
                         />
                         <div className="label-edit-actions">
                           <button
                             className="label-save-btn"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleSaveName()
-                            }}
+                            onClick={handleSaveName}
                             disabled={isUpdating}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -313,10 +305,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                           </button>
                           <button
                             className="label-cancel-btn"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleCancelEdit()
-                            }}
+                            onClick={handleCancelEdit}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -328,7 +317,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                       <div 
                         className="label-display"
                         style={{ backgroundColor: label.color }}
-                        onClick={(e) => handleEditName(label, e)}
+                        onClick={() => handleEditName(label)}
                       >
                         <span className="label-name">
                           {label.name || ''}
@@ -336,7 +325,10 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                         <div className="label-actions">
                           <button
                             className="label-edit-btn"
-                            onClick={(e) => handleEditName(label, e)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditName(label)
+                            }}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                               <path d="M21.174 6.812a1 1 0 00-3.986-3.987L3.842 16.174a2 2 0 00-.5.83l-1.321 4.352a.5.5 0 00.623.622l4.353-1.32a2 2 0 00.83-.497z" stroke="currentColor" strokeWidth="2"/>
@@ -355,17 +347,14 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
           <div className="create-label-section">
             <button 
               className="create-label-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowCreateModal(true)
-              }}
+              onClick={() => setShowCreateModal(true)}
             >
               Create a new label
             </button>
           </div>
 
           <div className="colorblind-section">
-            <button className="colorblind-btn" onClick={handleMenuClick}>
+            <button className="colorblind-btn">
               Enable colorblind friendly mode
             </button>
           </div>
@@ -374,7 +363,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
 
       <CreateLabelModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={handleCreateModalClose}
         onLabelsUpdated={onLabelsUpdated}
         workspaceId={workspaceId}
         existingLabels={labels}

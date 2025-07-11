@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { useDrop, useDrag } from 'react-dnd'
 import { Button } from '../../../components'
 import SimpleTodoCard from './SimpleTodoCard'
 import AddCardInline from './AddCardInline'
+import update from 'immutability-helper'
 import './ListColumn.css'
 
 interface List {
@@ -48,6 +49,7 @@ interface ListColumnProps {
   onDeleteList: () => void
   onMoveTodo: (todoId: number, targetListId: number) => void
   onListNameUpdated?: () => void
+  onUpdateTodosOrder?: (todos: Todo[]) => void
   index: number
   moveList: (from: number, to: number) => void
 }
@@ -64,6 +66,7 @@ const ListColumn = ({
   onDeleteList,
   onMoveTodo,
   onListNameUpdated,
+  onUpdateTodosOrder,
   index,
   moveList
 }: ListColumnProps) => {
@@ -71,8 +74,40 @@ const ListColumn = ({
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(list.name)
   const [showAddCard, setShowAddCard] = useState(false)
+  const [localTodos, setLocalTodos] = useState(todos)
   const menuRef = useRef<HTMLDivElement>(null)
   const refCol = useRef<HTMLDivElement>(null)
+
+  // Mettre à jour les todos locaux quand les props changent
+  React.useEffect(() => {
+    setLocalTodos(todos)
+  }, [todos])
+
+  const moveTodoWithinList = useCallback((dragIndex: number, hoverIndex: number) => {
+    setLocalTodos((prevTodos) => {
+      // S'assurer que les indices sont valides
+      const maxIndex = prevTodos.length - 1
+      const clampedHoverIndex = Math.min(Math.max(0, hoverIndex), maxIndex)
+      
+      if (dragIndex === clampedHoverIndex || dragIndex < 0 || dragIndex > maxIndex) {
+        return prevTodos
+      }
+
+      const updatedTodos = update(prevTodos, {
+        $splice: [
+          [dragIndex, 1],
+          [clampedHoverIndex, 0, prevTodos[dragIndex]]
+        ]
+      })
+      
+      // Optionnel: mettre à jour les positions sur le serveur
+      if (onUpdateTodosOrder) {
+        onUpdateTodosOrder(updatedTodos)
+      }
+      
+      return updatedTodos
+    })
+  }, [onUpdateTodosOrder])
 
   // Drop pour les cartes (todos)
   const [{ isOver }, drop] = useDrop({
@@ -84,6 +119,26 @@ const ListColumn = ({
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
+    }),
+  })
+
+  // Drop pour les cartes dans la zone de drop en fin de liste
+  const [{ isOverDropZone }, dropZone] = useDrop({
+    accept: 'todo',
+    drop: (item: { id: number; listId: number; index: number }) => {
+      if (item.listId === list.id) {
+        // Réorganiser dans la même liste - mettre à la fin
+        const currentIndex = localTodos.findIndex(t => t.id === item.id)
+        if (currentIndex !== -1 && currentIndex !== localTodos.length - 1) {
+          moveTodoWithinList(currentIndex, localTodos.length - 1)
+        }
+      } else {
+        // Déplacer vers une autre liste
+        onMoveTodo(item.id, list.id)
+      }
+    },
+    collect: (monitor) => ({
+      isOverDropZone: monitor.isOver(),
     }),
   })
 
@@ -234,7 +289,7 @@ const ListColumn = ({
 
       <div className="list-content">
         <div className="todos-container">
-          {todos && Array.isArray(todos) && todos.map(todo => {
+          {localTodos && Array.isArray(localTodos) && localTodos.map((todo, idx) => {
             if (!todo || !todo.id) {
               console.warn('Invalid todo in list:', todo)
               return null
@@ -243,6 +298,8 @@ const ListColumn = ({
               <SimpleTodoCard
                 key={todo.id}
                 todo={todo}
+                index={idx}
+                moveTodo={moveTodoWithinList}
                 onClick={() => onEditTodo(todo)}
               />
             )
@@ -254,6 +311,12 @@ const ListColumn = ({
               onCancel={handleCancelAddCard}
             />
           )}
+
+          {/* Zone de drop pour placer les cartes à la fin */}
+          <div 
+            ref={dropZone}
+            className={`drop-zone ${isOverDropZone ? 'drop-zone--active' : ''}`}
+          />
         </div>
 
         {!showAddCard && (

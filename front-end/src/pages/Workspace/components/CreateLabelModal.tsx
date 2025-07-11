@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import './CreateLabelModal.css'
 
 interface Label {
@@ -22,7 +22,7 @@ const AVAILABLE_COLORS = [
   '#3B82F6', '#1D4ED8', '#6366F1', '#8B5CF6', '#7C3AED', '#A855F7',
   '#D946EF', '#EC4899', '#6B7280', '#000000', '#92400E', '#B45309',
   '#D97706', '#DC2626', '#991B1B', '#7C2D12', '#1F2937', '#374151',
-  '#4B5563', '#6B7280', '#9CA3AF', '#D1D5DB'
+  '#4B5563', '#9CA3AF', '#D1D5DB', '#F3F4F6'
 ]
 
 const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
@@ -36,14 +36,23 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
   const [selectedColor, setSelectedColor] = useState(AVAILABLE_COLORS[0])
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState('')
+  const modalRef = useRef<HTMLDivElement>(null)
 
   const getUsedColors = () => {
-    return existingLabels.map(label => label.color)
+    // Si on veut créer un label sans nom, vérifier si une couleur est déjà utilisée par un label sans nom
+    if (!labelName.trim()) {
+      return existingLabels
+        .filter(label => !label.name || label.name.trim() === '')
+        .map(label => label.color)
+    }
+    // Si on a un nom, on peut utiliser n'importe quelle couleur (même si utilisée par un label sans nom)
+    return existingLabels
+      .filter(label => label.name && label.name.trim() !== '')
+      .map(label => label.color)
   }
 
   const handleCreateLabel = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!labelName.trim()) return
 
     setIsCreating(true)
     setError('')
@@ -57,7 +66,7 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          name: labelName.trim(),
+          name: labelName.trim() || null, // null si pas de nom
           color: selectedColor,
           workspaceId: workspaceId
         })
@@ -73,7 +82,11 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
         onClose()
       } else {
         if (response.status === 409 || data.error?.includes('already exists') || data.error?.includes('duplicate')) {
-          setError(`A label named "${labelName.trim()}" already exists in this workspace`)
+          if (labelName.trim()) {
+            setError(`A label named "${labelName.trim()}" already exists in this workspace`)
+          } else {
+            setError('A label with this color already exists in this workspace')
+          }
         } else {
           setError(data.error || 'Failed to create label')
         }
@@ -95,31 +108,28 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
     }
   }
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    // Ne fermer que si on clique directement sur l'overlay, pas sur le modal
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      handleClose()
+    }
+  }
+
+  const handleModalClick = (e: React.MouseEvent) => {
+    // Empêcher la propagation pour éviter de déclencher handleOverlayClick
+    e.stopPropagation()
+  }
+
   if (!isOpen) return null
 
   const usedColors = getUsedColors()
 
-  // Dans front-end/src/pages/Workspace/components/CreateLabelModal.tsx
-// Remplacer la partie du modal pour empêcher la fermeture
-
-return (
-    <div className="create-label-overlay" onClick={handleClose}>
-      <div 
-        className="create-label-modal" 
-        onClick={(e) => {
-          e.stopPropagation()
-          e.preventDefault()
-        }}
-      >
+  return (
+    <div className="create-label-overlay" onClick={handleOverlayClick}>
+      <div className="create-label-modal" ref={modalRef} onClick={handleModalClick}>
         <div className="create-label-header">
           <h3 className="create-label-title">Create New Label</h3>
-          <button 
-            className="create-label-close" 
-            onClick={(e) => {
-              e.stopPropagation()
-              handleClose()
-            }}
-          >
+          <button className="create-label-close" onClick={handleClose}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -134,7 +144,7 @@ return (
           )}
 
           <div className="create-form-group">
-            <label className="create-form-label">Label Name</label>
+            <label className="create-form-label">Label Name (Optional)</label>
             <input
               type="text"
               className="create-form-input"
@@ -143,10 +153,8 @@ return (
                 setLabelName(e.target.value)
                 setError('')
               }}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Enter label name..."
+              placeholder="Enter label name (optional)..."
               autoFocus
-              required
             />
           </div>
 
@@ -169,10 +177,7 @@ return (
                     type="button"
                     className={`create-color-option ${selectedColor === color ? 'create-color-option--selected' : ''} ${isUsed ? 'create-color-option--used' : ''}`}
                     style={{ backgroundColor: color }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (!isUsed) setSelectedColor(color)
-                    }}
+                    onClick={() => !isUsed && setSelectedColor(color)}
                     disabled={isUsed}
                     title={isUsed ? 'Color already used' : `Select ${color}`}
                   >
@@ -194,10 +199,7 @@ return (
             <button
               type="button"
               className="create-cancel-button"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleClose()
-              }}
+              onClick={handleClose}
               disabled={isCreating}
             >
               Cancel
@@ -205,8 +207,7 @@ return (
             <button
               type="submit"
               className="create-submit-button"
-              disabled={isCreating || !labelName.trim()}
-              onClick={(e) => e.stopPropagation()}
+              disabled={isCreating}
             >
               {isCreating ? 'Creating...' : 'Create Label'}
             </button>

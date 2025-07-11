@@ -119,13 +119,46 @@
   .label-checkbox-container {
     flex-shrink: 0;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .label-checkbox {
-    width: 16px;
-    height: 16px;
-    accent-color: #0079bf;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    position: relative;
     cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .label-checkbox:hover {
+    border-color: #10b981;
+  }
+  
+  .label-checkbox:checked {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+  }
+  
+  .label-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
   }
   
   .label-display {
