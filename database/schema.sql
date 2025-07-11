@@ -129,13 +129,3 @@ CREATE TABLE default_labels (
     color VARCHAR(7) NOT NULL,
     label_type VARCHAR(20) DEFAULT 'color' CHECK (label_type IN ('color', 'named'))
 );
-
-INSERT INTO default_labels (name, color, label_type) VALUES 
-(NULL, '#EF4444', 'color'),  -- Rouge
-(NULL, '#F59E0B', 'color'),  -- Orange
-(NULL, '#10B981', 'color'),  -- Vert
-(NULL, '#3B82F6', 'color'),  -- Bleu
-(NULL, '#8B5CF6', 'color'),  -- Violet
-(NULL, '#EC4899', 'color'),  -- Rose
-(NULL, '#6B7280', 'color'),  -- Gris
-(NULL, '#000000', 'color')  -- Noir

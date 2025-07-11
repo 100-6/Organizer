@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { LABEL_COLORS, DEFAULT_LABEL_COLOR } from '../../../constants/labelColors'
 import './LabelMenu.css'
 
 interface Label {
@@ -20,11 +21,6 @@ interface LabelMenuProps {
   workspaceId: string
 }
 
-const DEFAULT_COLORS = [
-  '#61bd4f', '#f2d600', '#ff9f1a', '#eb5a46', '#c377e0',
-  '#0079bf', '#00c2e0', '#51e898', '#ff78cb', '#344563',
-  '#b3bac5', '#000000', '#ffffff', '#ff6900', '#fcb900'
-]
 
 const LabelMenu: React.FC<LabelMenuProps> = ({
   isOpen,
@@ -39,7 +35,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   const [searchTerm, setSearchTerm] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newLabelName, setNewLabelName] = useState('')
-  const [selectedColor, setSelectedColor] = useState(DEFAULT_COLORS[0])
+  const [selectedColor, setSelectedColor] = useState(DEFAULT_LABEL_COLOR[0])
   const [isCreating, setIsCreating] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -97,7 +93,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
 
       if (response.ok) {
         setNewLabelName('')
-        setSelectedColor(DEFAULT_COLORS[0])
+        setSelectedColor(LABEL_COLORS[0])
         setShowCreateForm(false)
         onLabelsUpdated()
       }
@@ -195,7 +191,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
             <div className="form-group">
               <label className="form-label">Select a color</label>
               <div className="color-palette">
-                {DEFAULT_COLORS.map(color => (
+                {LABEL_COLORS.map(color => (
                   <button
                     key={color}
                     type="button"
@@ -225,7 +221,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                 onClick={() => {
                   setShowCreateForm(false)
                   setNewLabelName('')
-                  setSelectedColor(DEFAULT_COLORS[0])
+                  setSelectedColor(LABEL_COLORS[0])
                 }}
               >
                 Cancel
