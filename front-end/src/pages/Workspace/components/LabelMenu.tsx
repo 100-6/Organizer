@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { LABEL_COLORS, DEFAULT_LABEL_COLOR } from '../../../constants/labelColors'
+import CreateLabelModal from './CreateLabelModal'
 import './LabelMenu.css'
 
 interface Label {
@@ -21,6 +21,15 @@ interface LabelMenuProps {
   workspaceId: string
 }
 
+// Labels de base avec leurs couleurs prédéfinies (SANS nom par défaut)
+const BASE_LABELS = [
+  { color: '#10B981', id: 'green' },
+  { color: '#3B82F6', id: 'blue' }, 
+  { color: '#8B5CF6', id: 'purple' },
+  { color: '#F59E0B', id: 'orange' },
+  { color: '#EF4444', id: 'red' },
+  { color: '#FBBF24', id: 'yellow' }
+]
 
 const LabelMenu: React.FC<LabelMenuProps> = ({
   isOpen,
@@ -33,10 +42,11 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   workspaceId
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [newLabelName, setNewLabelName] = useState('')
-  const [selectedColor, setSelectedColor] = useState(DEFAULT_LABEL_COLOR[0])
-  const [isCreating, setIsCreating] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingLabelId, setEditingLabelId] = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [error, setError] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,15 +65,66 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     }
   }, [isOpen, onClose])
 
-  const filteredLabels = labels.filter(label =>
-    (label.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  // Créer les labels de base s'ils n'existent pas (SANS nom)
+  useEffect(() => {
+    if (isOpen && labels.length >= 0) {
+      createMissingBaseLabels()
+    }
+  }, [isOpen, labels])
+
+  const createMissingBaseLabels = async () => {
+    const token = localStorage.getItem('accessToken')
+    
+    for (const baseLabel of BASE_LABELS) {
+      const existingLabel = labels.find(label => label.color === baseLabel.color)
+      
+      if (!existingLabel) {
+        try {
+          await fetch('/api/labels', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              name: null, // Pas de nom par défaut
+              color: baseLabel.color,
+              workspaceId: workspaceId
+            })
+          })
+        } catch (error) {
+          console.error('Error creating base label:', error)
+        }
+      }
+    }
+    
+    onLabelsUpdated()
+  }
+
+  const getAllLabels = () => {
+    // Trier : d'abord les labels de base (par ordre défini), puis les personnalisés
+    const baseColors = BASE_LABELS.map(base => base.color)
+    const baseLabels = BASE_LABELS.map(baseLabel => {
+      return labels.find(label => label.color === baseLabel.color)
+    }).filter(Boolean) as Label[]
+    
+    const customLabels = labels.filter(label => !baseColors.includes(label.color))
+    
+    return [...baseLabels, ...customLabels]
+  }
+
+  const filteredLabels = getAllLabels().filter(label =>
+    searchTerm === '' || (label.name && label.name.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const isLabelSelected = (labelId: number) => {
-    return selectedLabels.some(label => label.id === labelId)
+    const selected = selectedLabels.some(label => label.id === labelId)
+    console.log('Label', labelId, 'selected:', selected, 'selectedLabels:', selectedLabels.map(l => l.id))
+    return selected
   }
 
-  const handleLabelClick = (label: Label) => {
+  const handleLabelToggle = (label: Label) => {
+    console.log('Toggling label:', label.id, 'Currently selected:', isLabelSelected(label.id))
     if (isLabelSelected(label.id)) {
       onRemoveLabel(label.id)
     } else {
@@ -71,166 +132,242 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     }
   }
 
-  const handleCreateLabel = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newLabelName.trim()) return
+  const handleEditName = (label: Label) => {
+    setEditingLabelId(label.id)
+    setEditName(label.name || '')
+    setError('')
+  }
 
-    setIsCreating(true)
+  const handleSaveName = async () => {
+    if (!editingLabelId) return
+
+    setIsUpdating(true)
+    setError('')
+
     try {
       const token = localStorage.getItem('accessToken')
-      const response = await fetch('/api/labels', {
-        method: 'POST',
+      const response = await fetch(`/api/labels/${editingLabelId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          name: newLabelName.trim(),
-          color: selectedColor,
-          workspaceId: workspaceId
+          name: editName.trim() || null
         })
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        setNewLabelName('')
-        setSelectedColor(LABEL_COLORS[0])
-        setShowCreateForm(false)
+        setEditingLabelId(null)
+        setEditName('')
+        onLabelsUpdated()
+      } else {
+        if (response.status === 409 || data.error?.includes('already exists')) {
+          setError(`A label named "${editName.trim()}" already exists`)
+        } else {
+          setError(data.error || 'Failed to update label')
+        }
+      }
+    } catch (error) {
+      console.error('Error updating label:', error)
+      setError('Network error. Please try again.')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingLabelId(null)
+    setEditName('')
+    setError('')
+  }
+
+  const handleDeleteLabel = async (labelId: number) => {
+    // Vérifier si c'est un label de base
+    const label = labels.find(l => l.id === labelId)
+    const isBaseLabel = label && BASE_LABELS.some(base => base.color === label.color)
+    
+    if (isBaseLabel) {
+      // Pour les labels de base, on supprime juste le nom
+      setEditingLabelId(labelId)
+      setEditName('')
+      await handleSaveName()
+      return
+    }
+
+    // Pour les labels personnalisés, suppression complète
+    if (!window.confirm('Are you sure you want to delete this label?')) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/labels/${labelId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
         onLabelsUpdated()
       }
     } catch (error) {
-      console.error('Error creating label:', error)
-    } finally {
-      setIsCreating(false)
+      console.error('Error deleting label:', error)
     }
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="label-menu-overlay" onClick={onClose}>
-      <div className="label-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-        <div className="label-menu-header">
-          <h3 className="label-menu-title">Labels</h3>
-          <button className="label-menu-close" onClick={onClose}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
+    <>
+      <div className="label-menu-overlay" onClick={onClose}>
+        <div className="label-menu-trello" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+          <div className="label-menu-header">
+            <h3 className="label-menu-title">Labels</h3>
+            <button className="label-menu-close" onClick={onClose}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
 
-        <div className="label-menu-search">
-          <input
-            type="text"
-            className="label-search-input"
-            placeholder="Search labels..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+          <div className="label-search-container">
+            <input
+              type="text"
+              className="label-search-input"
+              placeholder="Search labels..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-        <div className="label-menu-content">
-          <div className="label-menu-section">
-            <div className="label-section-title">Labels</div>
-            <div className="label-list">
-              {filteredLabels.length === 0 ? (
-                <div className="no-labels">
-                  {searchTerm ? 'No labels found' : 'No labels created yet'}
-                </div>
-              ) : (
-                filteredLabels.map(label => (
-                  <div
-                    key={label.id}
-                    className="label-item"
-                    onClick={() => handleLabelClick(label)}
-                  >
-                    <div 
-                      className="label-color"
-                      style={{ backgroundColor: label.color }}
-                    />
-                    <span className="label-text">
-                      {label.name || 'Unnamed label'}
-                    </span>
-                    {isLabelSelected(label.id) && (
-                      <svg className="label-check" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
+          <div className="labels-section">
+            <div className="labels-section-title">Labels</div>
+            
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
+            <div className="labels-list">
+              {filteredLabels.map(label => {
+                const isBaseLabel = BASE_LABELS.some(base => base.color === label.color)
+                
+                return (
+                  <div key={label.id} className="label-item-row">
+                    <label className="label-checkbox-container">
+                      <input
+                        type="checkbox"
+                        className="label-checkbox"
+                        checked={isLabelSelected(label.id)}
+                        onChange={() => handleLabelToggle(label)}
+                      />
+                    </label>
+
+                    {editingLabelId === label.id ? (
+                      <div className="label-edit-container">
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => {
+                            setEditName(e.target.value)
+                            setError('')
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveName()
+                            } else if (e.key === 'Escape') {
+                              handleCancelEdit()
+                            }
+                          }}
+                          className="label-name-input"
+                          placeholder="Enter label name..."
+                          autoFocus
+                        />
+                        <div className="label-edit-actions">
+                          <button
+                            className="label-save-btn"
+                            onClick={handleSaveName}
+                            disabled={isUpdating}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          </button>
+                          <button
+                            className="label-cancel-btn"
+                            onClick={handleCancelEdit}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="label-display"
+                        style={{ backgroundColor: label.color }}
+                        onClick={() => handleEditName(label)}
+                      >
+                        <span className="label-name">
+                          {label.name || ''}
+                        </span>
+                        <div className="label-actions">
+                          <button
+                            className="label-edit-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditName(label)
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M21.174 6.812a1 1 0 00-3.986-3.987L3.842 16.174a2 2 0 00-.5.83l-1.321 4.352a.5.5 0 00.623.622l4.353-1.32a2 2 0 00.83-.497z" stroke="currentColor" strokeWidth="2"/>
+                              <path d="M15 5l4 4" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
-                ))
-              )}
+                )
+              })}
             </div>
           </div>
-        </div>
 
-        {!showCreateForm ? (
           <div className="create-label-section">
             <button 
-              className="create-label-button"
-              onClick={() => setShowCreateForm(true)}
+              className="create-label-btn"
+              onClick={() => setShowCreateModal(true)}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
               Create a new label
             </button>
           </div>
-        ) : (
-          <form className="create-label-form" onSubmit={handleCreateLabel}>
-            <div className="form-group">
-              <label className="form-label">Name</label>
-              <input
-                type="text"
-                className="form-input"
-                value={newLabelName}
-                onChange={(e) => setNewLabelName(e.target.value)}
-                placeholder="Label name"
-                autoFocus
-              />
-            </div>
 
-            <div className="form-group">
-              <label className="form-label">Select a color</label>
-              <div className="color-palette">
-                {LABEL_COLORS.map(color => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`color-option ${selectedColor === color ? 'color-option--selected' : ''}`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setSelectedColor(color)}
-                  >
-                    {selectedColor === color && (
-                      <span className="color-option-check">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="form-actions">
-              <button
-                type="submit"
-                className="form-button form-button--primary"
-                disabled={isCreating || !newLabelName.trim()}
-              >
-                {isCreating ? 'Creating...' : 'Create'}
-              </button>
-              <button
-                type="button"
-                className="form-button form-button--secondary"
-                onClick={() => {
-                  setShowCreateForm(false)
-                  setNewLabelName('')
-                  setSelectedColor(LABEL_COLORS[0])
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
+          <div className="colorblind-section">
+            <button className="colorblind-btn">
+              Enable colorblind friendly mode
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <CreateLabelModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onLabelsUpdated={onLabelsUpdated}
+        workspaceId={workspaceId}
+        existingLabels={labels}
+        onOpenLabelMenu={() => {
+          setShowCreateModal(false)
+          // Le menu de labels reste ouvert puisque c'est le composant parent
+        }}
+      />
+    </>
   )
 }
 

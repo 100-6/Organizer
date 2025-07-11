@@ -1,0 +1,123 @@
+.color-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+  }
+  
+  .color-wheel-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .color-wheel {
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+  
+  .color-wheel:hover {
+    transform: scale(1.02);
+  }
+  
+  .color-sliders {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .slider-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #5e6c84;
+    text-transform: uppercase;
+    min-width: 80px;
+  }
+  
+  .color-slider {
+    flex: 1;
+    height: 20px;
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid #dfe1e6;
+  }
+  
+  .color-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .color-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .slider-value {
+    font-size: 12px;
+    color: #5e6c84;
+    font-weight: 500;
+    min-width: 40px;
+    text-align: right;
+  }
+  
+  .color-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+  }
+  
+  .color-preview-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+  }
+  
+  .color-preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .color-hex {
+    font-size: 14px;
+    font-weight: 600;
+    color: #172b4d;
+    font-family: 'Courier New', monospace;
+  }
+  
+  .color-hsl {
+    font-size: 12px;
+    color: #5e6c84;
+    font-family: 'Courier New', monospace;
+  }
