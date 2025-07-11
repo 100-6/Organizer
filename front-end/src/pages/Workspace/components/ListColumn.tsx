@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react'
 import { useDrop } from 'react-dnd'
 import { Button } from '../../../components'
-import TodoCard from './TodoCard'
+import SimpleTodoCard from './SimpleTodoCard'
+import AddCardInline from './AddCardInline'
 import './ListColumn.css'
 
 interface List {
@@ -41,7 +42,7 @@ interface ListColumnProps {
   list: List
   todos: Todo[]
   labels: Label[]
-  onCreateTodo: () => void
+  onCreateTodo: (title: string) => void
   onEditTodo: (todo: Todo) => void
   onDeleteTodo: (todoId: number) => void
   onDeleteList: () => void
@@ -63,6 +64,7 @@ const ListColumn = ({
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(list.name)
+  const [showAddCard, setShowAddCard] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const [{ isOver }, drop] = useDrop({
@@ -108,6 +110,19 @@ const ListColumn = ({
     }
   }
 
+  const handleCreateCard = async (title: string) => {
+    try {
+      await onCreateTodo(title)
+      setShowAddCard(false)
+    } catch (error) {
+      console.error('Error creating card:', error)
+    }
+  }
+
+  const handleCancelAddCard = () => {
+    setShowAddCard(false)
+  }
+
   return (
     <div 
       ref={drop as any}
@@ -133,7 +148,6 @@ const ListColumn = ({
               {list.name}
             </h3>
           )}
-          <span className="list-count">{todos.length}</span>
         </div>
         
         <div className="list-menu" ref={menuRef}>
@@ -188,29 +202,35 @@ const ListColumn = ({
               return null
             }
             return (
-              <TodoCard
+              <SimpleTodoCard
                 key={todo.id}
                 todo={todo}
-                labels={labels}
-                onEdit={() => onEditTodo(todo)}
-                onDelete={() => onDeleteTodo(todo.id)}
-                onLabelsOrTodosUpdated={onListNameUpdated || (() => {})}
+                onClick={() => onEditTodo(todo)}
               />
             )
           })}
+          
+          {showAddCard && (
+            <AddCardInline
+              onSave={handleCreateCard}
+              onCancel={handleCancelAddCard}
+            />
+          )}
         </div>
         
-        <Button 
-          variant="secondary" 
-          size="small"
-          onClick={onCreateTodo}
-          className="add-todo-button"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          Ajouter une carte
-        </Button>
+        {!showAddCard && (
+          <Button 
+            variant="secondary" 
+            size="small"
+            onClick={() => setShowAddCard(true)}
+            className="add-todo-button"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Add a card
+          </Button>
+        )}
       </div>
     </div>
   )

@@ -13,11 +13,8 @@ import {
 } from '../../components'
 import WorkspaceHeader from './components/WorkspaceHeader'
 import ListColumn from './components/ListColumn'
-import TodoCard from './components/TodoCard'
-import CreateTodoModal from './components/CreateTodoModal'
-import EditTodoModal from './components/EditTodoModal'
-import CreateLabelModal from './components/CreateLabelModal'
-import LabelManagerModal from './components/LabelManagerModal'
+import SimpleTodoCard from './components/SimpleTodoCard'
+import CardDetailsModal from './components/CardDetailsModal'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import './Workspace.css'
@@ -87,11 +84,7 @@ const Workspace = () => {
   const [error, setError] = useState('')
   
   const [showCreateListModal, setShowCreateListModal] = useState(false)
-  const [showCreateTodoModal, setShowCreateTodoModal] = useState(false)
-  const [showEditTodoModal, setShowEditTodoModal] = useState(false)
-  const [showCreateLabelModal, setShowCreateLabelModal] = useState(false)
-  const [showLabelManagerModal, setShowLabelManagerModal] = useState(false)
-  const [selectedListId, setSelectedListId] = useState<number | null>(null)
+  const [showCardDetailsModal, setShowCardDetailsModal] = useState(false)
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   
   const [newList, setNewList] = useState({ name: '', description: '' })
@@ -121,22 +114,10 @@ const Workspace = () => {
         })
       ])
 
-      console.log('API responses:', {
-        workspace: workspaceRes.status,
-        lists: listsRes.status,
-        labels: labelsRes.status
-      })
-
       if (workspaceRes.ok && listsRes.ok) {
         const workspaceData = await workspaceRes.json()
         const listsData = await listsRes.json()
         const labelsData = labelsRes.ok ? await labelsRes.json() : { labels: [] }
-
-        console.log('Parsed data:', {
-          workspace: workspaceData,
-          lists: listsData,
-          labels: labelsData
-        })
 
         setWorkspace(workspaceData.workspace)
         setLists(listsData.lists)
@@ -154,20 +135,16 @@ const Workspace = () => {
                 if (todosRes.ok) {
                   const todosResult = await todosRes.json()
                   todosData[list.id] = (todosResult.todos || []).map((todo: any) => ({ ...todo, workspace_id: list.workspace_id }))
-                  console.log(`Todos for list ${list.id}:`, todosResult.todos)
                 } else {
-                  console.error(`Failed to fetch todos for list ${list.id}:`, todosRes.status)
                   todosData[list.id] = []
                 }
               } catch (err) {
-                console.error(`Error fetching todos for list ${list.id}:`, err)
                 todosData[list.id] = []
               }
             })
           )
         }
         
-        console.log('Final todos data:', todosData)
         setTodos({ ...todosData })
       } else if (workspaceRes.status === 403) {
         setError('Accès refusé à ce workspace')
@@ -175,15 +152,9 @@ const Workspace = () => {
         logout()
         navigate('/login')
       } else {
-        console.error('API error:', {
-          workspace: workspaceRes.status,
-          lists: listsRes.status,
-          labels: labelsRes.status
-        })
         setError('Erreur lors du chargement du workspace')
       }
     } catch (err) {
-      console.error('Error in fetchWorkspaceData:', err)
       setError('Erreur de connexion')
     } finally {
       setIsLoading(false)
@@ -247,7 +218,7 @@ const Workspace = () => {
     }
   }
 
-  const handleCreateTodo = async (todoData: any) => {
+  const handleCreateTodo = async (listId: number, title: string) => {
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch('/api/todos', {
@@ -257,15 +228,14 @@ const Workspace = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          ...todoData,
-          listId: selectedListId,
-          position: todos[selectedListId!] ? todos[selectedListId!].length : 0,
-          labels: todoData.labels
+          title,
+          listId,
+          position: todos[listId] ? todos[listId].length : 0
         })
       })
+      
       if (response.ok) {
         await fetchWorkspaceData()
-        setShowCreateTodoModal(false)
       } else {
         const data = await response.json()
         setError(data.error || 'Erreur lors de la création de la tâche')
@@ -275,7 +245,7 @@ const Workspace = () => {
     }
   }
 
-  const handleUpdateTodo = async (todoId: number, todoData: any) => {
+  const handleUpdateTodo = async (todoId: number, updates: any) => {
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/todos/${todoId}`, {
@@ -284,12 +254,10 @@ const Workspace = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(todoData)
+        body: JSON.stringify(updates)
       })
 
       if (response.ok) {
-        setShowEditTodoModal(false)
-        setSelectedTodo(null)
         await fetchWorkspaceData()
       } else {
         const data = await response.json()
@@ -298,10 +266,6 @@ const Workspace = () => {
     } catch (err) {
       setError('Erreur de connexion')
     }
-  }
-
-  const handleLabelsUpdated = () => {
-    fetchWorkspaceData()
   }
 
   const handleDeleteTodo = async (todoId: number) => {
@@ -321,33 +285,6 @@ const Workspace = () => {
       } else {
         const data = await response.json()
         setError(data.error || 'Erreur lors de la suppression')
-      }
-    } catch (err) {
-      setError('Erreur de connexion')
-    }
-  }
-
-  const handleCreateLabel = async (labelData: { name: string; color: string }) => {
-    try {
-      const token = localStorage.getItem('accessToken')
-      const response = await fetch('/api/labels', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...labelData,
-          workspaceId: id
-        })
-      })
-
-      if (response.ok) {
-        setShowCreateLabelModal(false)
-        await fetchWorkspaceData()
-      } else {
-        const data = await response.json()
-        setError(data.error || 'Erreur lors de la création du label')
       }
     } catch (err) {
       setError('Erreur de connexion')
@@ -380,12 +317,26 @@ const Workspace = () => {
     }
   }
 
+  const handleOpenCardDetails = (todo: Todo) => {
+    setSelectedTodo({ ...todo, workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
+    setShowCardDetailsModal(true)
+  }
+
+  const handleCloseCardDetails = () => {
+    setSelectedTodo(null)
+    setShowCardDetailsModal(false)
+  }
+
   const handleAddMember = () => {
     console.log('Ajouter un membre - fonction à implémenter')
   }
 
   const handleSettings = () => {
     console.log('Paramètres du workspace - fonction à implémenter')
+  }
+
+  const getListName = (listId: number) => {
+    return lists.find(list => list.id === listId)?.name || 'Unknown List'
   }
 
   if (isLoading) {
@@ -406,138 +357,103 @@ const Workspace = () => {
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
         <div className="workspace-page">
-        <WorkspaceHeader
-          workspace={workspace}
-          onAddMember={handleAddMember}
-          onSettings={handleSettings}
-          onManageLabels={() => setShowLabelManagerModal(true)}
-        />
+          <WorkspaceHeader
+            workspace={workspace}
+            onAddMember={handleAddMember}
+            onSettings={handleSettings}
+            onManageLabels={() => {}}
+          />
 
-        <main className="workspace-main">
-          {error && (
-            <AlertMessage 
-              type="error" 
-              message={error} 
-              onClose={() => setError('')}
-            />
-          )}
+          <main className="workspace-main">
+            {error && (
+              <AlertMessage 
+                type="error" 
+                message={error} 
+                onClose={() => setError('')}
+              />
+            )}
 
-          <div className="workspace-content">
-            <div className="lists-container">
-              {lists.map(list => (
-                <ListColumn
-                  key={list.id}
-                  list={list}
-                  todos={todos[list.id] || []}
-                  labels={labels}
-                  onCreateTodo={() => {
-                    setSelectedListId(list.id)
-                    setShowCreateTodoModal(true)
-                  }}
-                  onEditTodo={(todo) => {
-                    setSelectedTodo({ ...(todo as any), workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
-                    setShowEditTodoModal(true)
-                  }}
-                  onDeleteTodo={handleDeleteTodo}
-                  onDeleteList={() => handleDeleteList(list.id)}
-                  onMoveTodo={handleMoveTodo}
-                  onListNameUpdated={fetchWorkspaceData}
-                />
-              ))}
-              
-              <div className="create-list-column">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => setShowCreateListModal(true)}
-                  className="create-list-button"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  Ajouter une liste
-                </Button>
+            <div className="workspace-content">
+              <div className="lists-container">
+                {lists.map(list => (
+                  <ListColumn
+                    key={list.id}
+                    list={list}
+                    todos={todos[list.id] || []}
+                    labels={labels}
+                    onCreateTodo={(title) => handleCreateTodo(list.id, title)}
+                    onEditTodo={handleOpenCardDetails}
+                    onDeleteTodo={handleDeleteTodo}
+                    onDeleteList={() => handleDeleteList(list.id)}
+                    onMoveTodo={handleMoveTodo}
+                    onListNameUpdated={fetchWorkspaceData}
+                  />
+                ))}
+                
+                <div className="create-list-column">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => setShowCreateListModal(true)}
+                    className="create-list-button"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Add another list
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </main>
+          </main>
 
-        <Modal
-          isOpen={showCreateListModal}
-          onClose={() => setShowCreateListModal(false)}
-          title="Nouvelle Liste"
-        >
-          <form onSubmit={handleCreateList} className="list-form">
-            <FormInput
-              label="Nom de la liste"
-              type="text"
-              id="listName"
-              name="name"
-              value={newList.name}
-              onChange={(e) => setNewList(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="À faire"
-              required
-            />
-            
-            <div className="modal-actions">
-              <Button 
-                type="button" 
-                variant="secondary" 
-                onClick={() => setShowCreateListModal(false)}
-              >
-                Annuler
-              </Button>
-              <Button 
-                type="submit" 
-                variant="primary"
-                disabled={isCreatingList}
-              >
-                {isCreatingList ? 'Création...' : 'Créer'}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+          <Modal
+            isOpen={showCreateListModal}
+            onClose={() => setShowCreateListModal(false)}
+            title="Add list"
+          >
+            <form onSubmit={handleCreateList} className="list-form">
+              <FormInput
+                label="List name"
+                type="text"
+                id="listName"
+                name="name"
+                value={newList.name}
+                onChange={(e) => setNewList(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter list title..."
+                required
+              />
+              
+              <div className="modal-actions">
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  onClick={() => setShowCreateListModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="primary"
+                  disabled={isCreatingList}
+                >
+                  {isCreatingList ? 'Adding...' : 'Add list'}
+                </Button>
+              </div>
+            </form>
+          </Modal>
 
-        <CreateTodoModal
-          isOpen={showCreateTodoModal}
-          onClose={() => {
-            setShowCreateTodoModal(false)
-          }}
-          onSubmit={handleCreateTodo}
-          labels={labels}
-          members={workspace.members}
-          selectedListId={selectedListId}
-        />
-
-        <EditTodoModal
-          isOpen={showEditTodoModal}
-          onClose={() => {
-            setShowEditTodoModal(false)
-            setSelectedTodo(null)
-          }}
-          todo={selectedTodo}
-          onSubmit={handleUpdateTodo}
-          labels={labels}
-          members={workspace.members}
-          workspaceId={id!}
-          onLabelsUpdated={handleLabelsUpdated}
-        />
-
-        <CreateLabelModal
-          isOpen={showCreateLabelModal}
-          onClose={() => setShowCreateLabelModal(false)}
-          onSubmit={handleCreateLabel}
-        />
-
-        <LabelManagerModal
-          isOpen={showLabelManagerModal}
-          onClose={() => setShowLabelManagerModal(false)}
-          labels={labels}
-          onLabelUpdated={fetchWorkspaceData}
-          onLabelDeleted={fetchWorkspaceData}
-          workspaceId={id}
-        />
-      </div>
-    </DndProvider>
+          <CardDetailsModal
+            isOpen={showCardDetailsModal}
+            onClose={handleCloseCardDetails}
+            todo={selectedTodo}
+            onUpdate={handleUpdateTodo}
+            labels={labels}
+            members={workspace.members}
+            listName={selectedTodo ? getListName(selectedTodo.list_id) : ''}
+            onLabelsUpdated={fetchWorkspaceData}
+          />
+        </div>
+      </DndProvider>
     </ErrorBoundary>
   )
 }

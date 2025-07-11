@@ -1,0 +1,85 @@
+.simple-todo-card {
+    background: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 8px;
+    position: relative;
+    word-wrap: break-word;
+  }
+  
+  .simple-todo-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+  
+  .simple-todo-card--dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+  }
+  
+  .card-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  
+  .card-label {
+    height: 8px;
+    border-radius: 4px;
+    min-width: 40px;
+    flex-grow: 1;
+    max-width: 100%;
+  }
+  
+  .card-title {
+    font-size: 14px;
+    line-height: 20px;
+    color: #172b4d;
+    margin: 0;
+    word-break: break-word;
+  }
+  
+  .card-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  
+  .card-badge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    color: #5e6c84;
+  }
+  
+  .card-badge-icon {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .card-members {
+    display: flex;
+    margin-left: auto;
+  }
+  
+  .card-member-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #dfe1e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #5e6c84;
+    margin-left: -4px;
+    border: 2px solid white;
+  }

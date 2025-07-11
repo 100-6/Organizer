@@ -1,0 +1,68 @@
+.add-card-inline {
+    background: white;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 8px;
+  }
+  
+  .add-card-textarea {
+    width: 100%;
+    min-height: 54px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 20px;
+    resize: none;
+    outline: none;
+    background: white;
+    box-shadow: 0 0 0 2px #0079bf;
+  }
+  
+  .add-card-textarea::placeholder {
+    color: #5e6c84;
+  }
+  
+  .add-card-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .add-card-save {
+    background: #0079bf;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .add-card-save:hover {
+    background: #005a8b;
+  }
+  
+  .add-card-save:disabled {
+    background: #bcd2e8;
+    cursor: not-allowed;
+  }
+  
+  .add-card-cancel {
+    background: none;
+    border: none;
+    color: #5e6c84;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 3px;
+    transition: color 0.2s ease;
+  }
+  
+  .add-card-cancel:hover {
+    color: #172b4d;
+  }
