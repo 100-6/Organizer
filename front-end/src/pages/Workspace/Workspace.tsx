@@ -18,6 +18,7 @@ import CardDetailsModal from './components/CardDetailsModal'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import './Workspace.css'
+import update from 'immutability-helper'
 
 interface Workspace {
   id: number
@@ -120,7 +121,7 @@ const Workspace = () => {
         const labelsData = labelsRes.ok ? await labelsRes.json() : { labels: [] }
 
         setWorkspace(workspaceData.workspace)
-        setLists(listsData.lists)
+        setLists(listsData.lists.sort((a, b) => a.position - b.position))
         setLabels(labelsData.labels)
 
         const todosData: { [listId: number]: Todo[] } = {}
@@ -339,6 +340,36 @@ const Workspace = () => {
     return lists.find(list => list.id === listId)?.name || 'Unknown List'
   }
 
+  const moveList = async (from: number, to: number) => {
+    setLists(prevLists => update(prevLists, {
+      $splice: [
+        [from, 1],
+        [to, 0, prevLists[from]]
+      ]
+    }))
+
+    // Met à jour la position de chaque liste dans l'ordre actuel
+    const newOrder = lists.map((list, idx) => ({
+      id: list.id,
+      position: idx
+    }))
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      await fetch('/api/lists/update-positions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ lists: newOrder })
+      })
+      // Optionnel : await fetchWorkspaceData()
+    } catch (err) {
+      // Optionnel : afficher une erreur ou recharger les données
+    }
+  }
+
   if (isLoading) {
     return <LoadingSpinner message="Chargement du workspace..." fullScreen />
   }
@@ -375,7 +406,7 @@ const Workspace = () => {
 
             <div className="workspace-content">
               <div className="lists-container">
-                {lists.map(list => (
+                {lists.map((list, idx) => (
                   <ListColumn
                     key={list.id}
                     list={list}
@@ -387,6 +418,8 @@ const Workspace = () => {
                     onDeleteList={() => handleDeleteList(list.id)}
                     onMoveTodo={handleMoveTodo}
                     onListNameUpdated={fetchWorkspaceData}
+                    index={idx}
+                    moveList={moveList}
                   />
                 ))}
                 

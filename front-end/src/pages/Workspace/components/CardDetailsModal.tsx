@@ -67,6 +67,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [showLabelMenu, setShowLabelMenu] = useState(false)
+  const [currentTodoLabels, setCurrentTodoLabels] = useState<Label[]>([])
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const descriptionRef = useRef<HTMLTextAreaElement>(null)
 
@@ -74,6 +75,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     if (todo && isOpen) {
       setTitle(todo.title)
       setDescription(todo.description || '')
+      setCurrentTodoLabels(todo.labels || [])
     }
   }, [todo, isOpen])
 
@@ -94,7 +96,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   const handleAddLabel = async (labelId: number) => {
     try {
       const token = localStorage.getItem('accessToken')
-      await fetch(`/api/todos/${todo.id}/labels`, {
+      const response = await fetch(`/api/todos/${todo.id}/labels`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +104,14 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ labelId })
       })
-      onLabelsUpdated()
+      
+      if (response.ok) {
+        const labelToAdd = labels.find(l => l.id === labelId)
+        if (labelToAdd) {
+          setCurrentTodoLabels(prev => [...prev, labelToAdd])
+        }
+        onLabelsUpdated()
+      }
     } catch (error) {
       console.error('Error adding label:', error)
     }
@@ -111,11 +120,15 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   const handleRemoveLabel = async (labelId: number) => {
     try {
       const token = localStorage.getItem('accessToken')
-      await fetch(`/api/todos/${todo.id}/labels/${labelId}`, {
+      const response = await fetch(`/api/todos/${todo.id}/labels/${labelId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      onLabelsUpdated()
+      
+      if (response.ok) {
+        setCurrentTodoLabels(prev => prev.filter(label => label.id !== labelId))
+        onLabelsUpdated()
+      }
     } catch (error) {
       console.error('Error removing label:', error)
     }
@@ -175,7 +188,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
 
         <div className="card-details-body">
           <div className="card-details-main">
-            {todo.labels && todo.labels.length > 0 && (
+            {currentTodoLabels && currentTodoLabels.length > 0 && (
               <div className="card-section">
                 <div className="card-section-header">
                   <div className="card-section-icon">
@@ -187,13 +200,13 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                   <h3 className="card-section-title">Labels</h3>
                 </div>
                 <div className="card-labels-list">
-                  {todo.labels.map(label => (
+                  {currentTodoLabels.map(label => (
                     <div
                       key={label.id}
                       className="card-label-item"
                       style={{ backgroundColor: label.color }}
                     >
-                      {label.name || 'Label'}
+                      {label.name || ''}
                     </div>
                   ))}
                   <button
@@ -351,7 +364,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
             isOpen={showLabelMenu}
             onClose={() => setShowLabelMenu(false)}
             labels={labels}
-            selectedLabels={todo.labels}
+            selectedLabels={currentTodoLabels}
             onAddLabel={handleAddLabel}
             onRemoveLabel={handleRemoveLabel}
             onLabelsUpdated={onLabelsUpdated}

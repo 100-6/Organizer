@@ -176,7 +176,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 8px;
+    padding: 0 12px;
     border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
@@ -184,6 +184,11 @@
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
     cursor: pointer;
     transition: opacity 0.2s ease;
+    min-width: 64px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .card-label-item:hover {

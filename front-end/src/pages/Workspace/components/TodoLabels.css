@@ -16,9 +16,18 @@
   align-items: center;
   gap: 4px;
   transition: all 0.2s ease;
+  min-width: 40px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-content: center;
 }
 
 .todo-label-text {
   font-size: 10px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

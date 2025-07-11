@@ -21,7 +21,6 @@ interface LabelMenuProps {
   workspaceId: string
 }
 
-// Labels de base avec leurs couleurs prédéfinies (SANS nom par défaut)
 const BASE_LABELS = [
   { color: '#10B981', id: 'green' },
   { color: '#3B82F6', id: 'blue' }, 
@@ -65,7 +64,6 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     }
   }, [isOpen, onClose])
 
-  // Créer les labels de base s'ils n'existent pas (SANS nom)
   useEffect(() => {
     if (isOpen && labels.length >= 0) {
       createMissingBaseLabels()
@@ -121,8 +119,9 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   }
 
   const handleLabelToggle = (label: Label) => {
-    console.log('Toggling label:', label.id, 'Currently selected:', isLabelSelected(label.id))
-    if (isLabelSelected(label.id)) {
+    const isSelected = isLabelSelected(label.id)
+    
+    if (isSelected) {
       onRemoveLabel(label.id)
     } else {
       onAddLabel(label.id)
@@ -143,6 +142,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
 
     try {
       const token = localStorage.getItem('accessToken')
+      const labelToUpdate = labels.find(l => l.id === editingLabelId)
       const response = await fetch(`/api/labels/${editingLabelId}`, {
         method: 'PUT',
         headers: {
@@ -150,7 +150,8 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          name: editName.trim() || null
+          name: editName.trim() === '' ? null : editName.trim(),
+          color: labelToUpdate?.color
         })
       })
 
@@ -182,19 +183,16 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   }
 
   const handleDeleteLabel = async (labelId: number) => {
-    // Vérifier si c'est un label de base
     const label = labels.find(l => l.id === labelId)
     const isBaseLabel = label && BASE_LABELS.some(base => base.color === label.color)
     
     if (isBaseLabel) {
-      // Pour les labels de base, on supprime juste le nom
       setEditingLabelId(labelId)
       setEditName('')
       await handleSaveName()
       return
     }
 
-    // Pour les labels personnalisés, suppression complète
     if (!window.confirm('Are you sure you want to delete this label?')) {
       return
     }

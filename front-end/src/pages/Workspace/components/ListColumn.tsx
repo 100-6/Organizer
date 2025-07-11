@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useDrop } from 'react-dnd'
+import { useDrop, useDrag } from 'react-dnd'
 import { Button } from '../../../components'
 import SimpleTodoCard from './SimpleTodoCard'
 import AddCardInline from './AddCardInline'
@@ -48,7 +48,11 @@ interface ListColumnProps {
   onDeleteList: () => void
   onMoveTodo: (todoId: number, targetListId: number) => void
   onListNameUpdated?: () => void
+  index: number
+  moveList: (from: number, to: number) => void
 }
+
+type DragListItem = { index: number }
 
 const ListColumn = ({
   list,
@@ -59,14 +63,18 @@ const ListColumn = ({
   onDeleteTodo,
   onDeleteList,
   onMoveTodo,
-  onListNameUpdated
+  onListNameUpdated,
+  index,
+  moveList
 }: ListColumnProps) => {
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(list.name)
   const [showAddCard, setShowAddCard] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const refCol = useRef<HTMLDivElement>(null)
 
+  // Drop pour les cartes (todos)
   const [{ isOver }, drop] = useDrop({
     accept: 'todo',
     drop: (item: { id: number; listId: number }) => {
@@ -78,6 +86,35 @@ const ListColumn = ({
       isOver: monitor.isOver(),
     }),
   })
+
+  // Drop pour les listes (colonnes)
+  const [{ handlerId }, dropList] = useDrop<DragListItem, void, { handlerId?: any }>({
+    accept: 'list',
+    collect(monitor) {
+      return {
+        handlerId: monitor.getHandlerId(),
+      }
+    },
+    hover(item, monitor) {
+      if (!refCol.current) return
+      const dragIndex = item.index
+      const hoverIndex = index
+      if (dragIndex === hoverIndex) return
+      moveList(dragIndex, hoverIndex)
+      item.index = hoverIndex
+    },
+  })
+
+  // Drag pour la colonne
+  const [{ isDragging }, drag] = useDrag<DragListItem, void, { isDragging: boolean }>({
+    type: 'list',
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  })
+
+  drag(dropList(drop(refCol)))
 
   const handleSaveName = async () => {
     if (editName.trim() && editName !== list.name) {
@@ -124,9 +161,10 @@ const ListColumn = ({
   }
 
   return (
-    <div 
-      ref={drop as any}
-      className={`list-column ${isOver ? 'list-column--dragover' : ''}`}
+    <div
+      ref={refCol}
+      className={`list-column ${isDragging ? 'list-column--dragging' : ''}`}
+      data-handler-id={handlerId}
     >
       <div className="list-header">
         <div className="list-title-container">
@@ -141,7 +179,7 @@ const ListColumn = ({
               autoFocus
             />
           ) : (
-            <h3 
+            <h3
               className="list-title"
               onClick={() => setIsEditing(true)}
             >
@@ -149,9 +187,9 @@ const ListColumn = ({
             </h3>
           )}
         </div>
-        
+
         <div className="list-menu" ref={menuRef}>
-          <button 
+          <button
             className="list-menu-button"
             onClick={() => setShowMenu(!showMenu)}
           >
@@ -159,10 +197,10 @@ const ListColumn = ({
               <path d="M12 13a1 1 0 100-2 1 1 0 000 2zM12 6a1 1 0 100-2 1 1 0 000 2zM12 20a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/>
             </svg>
           </button>
-          
+
           {showMenu && (
             <div className="list-menu-dropdown">
-              <button 
+              <button
                 className="list-menu-item"
                 onClick={() => {
                   setIsEditing(true)
@@ -175,7 +213,7 @@ const ListColumn = ({
                 </svg>
                 Renommer
               </button>
-              <button 
+              <button
                 className="list-menu-item list-menu-item--danger"
                 onClick={() => {
                   onDeleteList()
@@ -209,7 +247,7 @@ const ListColumn = ({
               />
             )
           })}
-          
+
           {showAddCard && (
             <AddCardInline
               onSave={handleCreateCard}
@@ -217,10 +255,10 @@ const ListColumn = ({
             />
           )}
         </div>
-        
+
         {!showAddCard && (
-          <Button 
-            variant="secondary" 
+          <Button
+            variant="secondary"
             size="small"
             onClick={() => setShowAddCard(true)}
             className="add-todo-button"

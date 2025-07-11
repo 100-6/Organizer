@@ -32,8 +32,8 @@
     height: 8px;
     border-radius: 4px;
     min-width: 40px;
-    flex-grow: 1;
-    max-width: 100%;
+    max-width: 80px;
+    flex-shrink: 0;
   }
   
   .card-title {

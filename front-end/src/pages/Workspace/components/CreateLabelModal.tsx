@@ -101,7 +101,7 @@ const CreateLabelModal: React.FC<CreateLabelModalProps> = ({
 
   return (
     <div className="create-label-overlay" onClick={handleClose}>
-      <div className="create-label-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="create-label-modal" onClick={e => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}>
         <div className="create-label-header">
           <h3 className="create-label-title">Create New Label</h3>
           <button className="create-label-close" onClick={handleClose}>
