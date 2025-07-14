@@ -3,6 +3,28 @@
     background: #f8fafc;
     display: flex;
     flex-direction: column;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer et Edge */
+  }
+
+  .workspace-page::-webkit-scrollbar {
+    display: none; /* Safari et Chrome */
+  }
+
+  /* Force suppression des barres de scroll pour tous les éléments du workspace */
+  .workspace-page *::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .workspace-page * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .workspace-header-container {
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
   
   .workspace-main {
@@ -13,6 +35,12 @@
   .workspace-content {
     max-width: 100%;
     overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer et Edge */
+  }
+
+  .workspace-content::-webkit-scrollbar {
+    display: none; /* Safari et Chrome */
   }
   
   .lists-container {
@@ -22,14 +50,16 @@
     padding-bottom: 24px;
   }
   
-  .create-list-column {
+  .create-list-column,
+  .add-list-column {
     min-width: 300px;
     display: flex;
     align-items: flex-start;
     padding-top: 20px;
   }
   
-  .create-list-button {
+  .create-list-button,
+  .add-list-button {
     width: 100%;
     height: 56px;
     border: 2px dashed #d1d5db;
@@ -42,9 +72,11 @@
     font-weight: 500;
     transition: all 0.2s ease;
     border-radius: 12px;
+    cursor: pointer;
   }
   
-  .create-list-button:hover {
+  .create-list-button:hover,
+  .add-list-button:hover {
     border-color: #10b981;
     color: #10b981;
     background: rgba(16, 185, 129, 0.04);

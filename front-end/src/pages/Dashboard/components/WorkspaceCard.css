@@ -106,10 +106,13 @@
     color: #6b7280;
     font-size: 12px;
     font-weight: 500;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
   }
   
   .workspace-meta-item svg {
-    color: #9ca3af;
+    color: #10b981;
     flex-shrink: 0;
     width: 12px;
     height: 12px;

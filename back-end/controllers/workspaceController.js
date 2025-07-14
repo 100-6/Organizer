@@ -20,6 +20,23 @@ const createWorkspace = async (req, res) => {
             [workspace.id, ownerId, 'owner']
         );
 
+        // Créer les labels de base pour le nouveau workspace
+        const baseLabels = [
+            { color: '#10B981', name: null }, // Green
+            { color: '#3B82F6', name: null }, // Blue
+            { color: '#8B5CF6', name: null }, // Purple
+            { color: '#FBBF24', name: null }, // Yellow
+            { color: '#F59E0B', name: null }, // Orange
+            { color: '#EF4444', name: null }  // Red
+        ];
+
+        for (const label of baseLabels) {
+            await client.query(
+                'INSERT INTO labels (name, color, workspace_id) VALUES ($1, $2, $3)',
+                [label.name, label.color, workspace.id]
+            );
+        }
+
         await client.query('COMMIT');
 
         res.status(201).json({
@@ -430,6 +447,135 @@ const leaveWorkspace = async (req, res) => {
     }
 };
 
+// Mettre à jour le rôle d'un membre
+const updateMemberRole = async (req, res) => {
+    try {
+        const { workspaceId, memberId } = req.params;
+        const { role } = req.body;
+        const currentUserId = req.user.id;
+
+        if (isNaN(workspaceId) || isNaN(memberId)) {
+            return res.status(400).json({
+                error: 'IDs invalides'
+            });
+        }
+
+        if (!['editor', 'member', 'viewer'].includes(role)) {
+            return res.status(400).json({
+                error: 'Rôle invalide. Doit être editor, member ou viewer'
+            });
+        }
+
+        // Vérifier que l'utilisateur est owner ou editor
+        const roleCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [workspaceId, currentUserId]
+        );
+
+        if (roleCheck.rows.length === 0 || 
+            !['owner', 'editor'].includes(roleCheck.rows[0].role)) {
+            return res.status(403).json({
+                error: 'Permissions insuffisantes pour modifier les rôles'
+            });
+        }
+
+        // Vérifier que le membre existe
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [workspaceId, memberId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(404).json({
+                error: 'Membre introuvable dans ce workspace'
+            });
+        }
+
+        // Empêcher la modification du rôle du owner
+        if (memberCheck.rows[0].role === 'owner') {
+            return res.status(400).json({
+                error: 'Impossible de modifier le rôle du propriétaire'
+            });
+        }
+
+        // Seul le owner peut promouvoir quelqu'un editor
+        if (role === 'editor' && roleCheck.rows[0].role !== 'owner') {
+            return res.status(403).json({
+                error: 'Seul le propriétaire peut nommer des éditeurs'
+            });
+        }
+
+        // Mettre à jour le rôle
+        await pool.query(
+            'UPDATE workspace_members SET role = $1 WHERE workspace_id = $2 AND user_id = $3',
+            [role, workspaceId, memberId]
+        );
+
+        // Récupérer les infos mises à jour
+        const updatedMember = await pool.query(`
+            SELECT 
+                u.id,
+                u.username,
+                u.email,
+                wm.role,
+                wm.joined_at
+            FROM workspace_members wm
+            JOIN users u ON wm.user_id = u.id
+            WHERE wm.workspace_id = $1 AND wm.user_id = $2
+        `, [workspaceId, memberId]);
+
+        res.json({
+            message: 'Rôle mis à jour avec succès',
+            member: updatedMember.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du rôle:', error);
+        res.status(500).json({
+            error: 'Erreur interne du serveur'
+        });
+    }
+};
+
+// Vérifier les permissions d'un utilisateur pour un workspace
+const checkUserPermissions = async (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+        const userId = req.user.id;
+
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [workspaceId, userId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(403).json({
+                error: 'Vous n\'êtes pas membre de ce workspace'
+            });
+        }
+
+        const role = memberCheck.rows[0].role;
+        const permissions = {
+            canView: ['owner', 'editor', 'member', 'viewer'].includes(role),
+            canEdit: ['owner', 'editor', 'member'].includes(role),
+            canManageMembers: ['owner', 'editor'].includes(role),
+            canManageWorkspace: ['owner'].includes(role),
+            canDelete: ['owner'].includes(role)
+        };
+
+        res.json({
+            role,
+            permissions
+        });
+
+    } catch (error) {
+        console.error('Erreur lors de la vérification des permissions:', error);
+        res.status(500).json({
+            error: 'Erreur interne du serveur'
+        });
+    }
+};
+
 module.exports = {
     createWorkspace,
     getUserWorkspaces,
@@ -438,5 +584,7 @@ module.exports = {
     deleteWorkspace,
     addMember,
     removeMember,
-    leaveWorkspace
+    leaveWorkspace,
+    updateMemberRole,
+    checkUserPermissions
 };

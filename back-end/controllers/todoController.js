@@ -47,10 +47,11 @@ const createTodo = async (req, res) => {
 
         // Associer les labels si fournis
         if (Array.isArray(labels) && labels.length > 0) {
-            for (const labelId of labels) {
+            for (let i = 0; i < labels.length; i++) {
+                const labelId = labels[i];
                 await client.query(
-                    'INSERT INTO todo_labels (todo_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                    [todoId, labelId]
+                    'INSERT INTO todo_labels (todo_id, label_id, assigned_order) VALUES ($1, $2, $3) ON CONFLICT (todo_id, label_id) DO UPDATE SET assigned_order = $3',
+                    [todoId, labelId, i + 1]
                 );
             }
         }
@@ -70,6 +71,7 @@ const createTodo = async (req, res) => {
             FROM labels l
             JOIN todo_labels tl ON l.id = tl.label_id
             WHERE tl.todo_id = $1
+            ORDER BY tl.assigned_order ASC, tl.assigned_at ASC
         `, [todoId]);
         todo.labels = labelsResult.rows;
 
@@ -143,6 +145,7 @@ const getListTodos = async (req, res) => {
                 FROM labels l
                 JOIN todo_labels tl ON l.id = tl.label_id
                 WHERE tl.todo_id = $1
+                ORDER BY tl.assigned_order ASC, tl.assigned_at ASC
             `, [todo.id]);
             todo.labels = labelsResult.rows;
         }
@@ -213,10 +216,21 @@ const getTodoById = async (req, res) => {
             FROM labels l
             JOIN todo_labels tl ON l.id = tl.label_id
             WHERE tl.todo_id = $1
+            ORDER BY tl.assigned_order ASC, tl.assigned_at ASC
+        `, [id]);
+
+        // Récupérer les assignations multiples
+        const assignmentsResult = await pool.query(`
+            SELECT u.id, u.username, u.email, 'member' as role, ta.assigned_at as joined_at
+            FROM users u
+            JOIN todo_assignments ta ON u.id = ta.user_id
+            WHERE ta.todo_id = $1
+            ORDER BY ta.assigned_at ASC
         `, [id]);
 
         todo.checklist_items = checklistResult.rows;
         todo.labels = labelsResult.rows;
+        todo.assigned_members = assignmentsResult.rows;
 
         res.json({
             todo
@@ -235,6 +249,11 @@ const updateTodo = async (req, res) => {
         const { id } = req.params;
         const { title, description, assignedTo, dueDate, dueTime, position } = req.body;
         const userId = req.user.id;
+        
+        console.log('=== Todo Update Backend Debug ===');
+        console.log('Request body:', req.body);
+        console.log('Extracted assignedTo:', assignedTo);
+        console.log('typeof assignedTo:', typeof assignedTo);
 
         if (isNaN(id)) {
             return res.status(400).json({
@@ -301,6 +320,7 @@ const updateTodo = async (req, res) => {
             updates.push(`assigned_to = $${paramCount}`);
             values.push(assignedTo);
             paramCount++;
+            console.log('Added assignedTo to updates:', assignedTo);
         }
 
         if (dueDate !== undefined) {
@@ -321,6 +341,9 @@ const updateTodo = async (req, res) => {
             paramCount++;
         }
 
+        console.log('Updates array:', updates);
+        console.log('Values array:', values);
+        
         if (updates.length === 0) {
             return res.status(400).json({
                 error: 'Au moins un champ doit être fourni pour la mise à jour'
@@ -639,9 +662,16 @@ const addLabelToTodo = async (req, res) => {
         })
       }
   
+      // Obtenir le prochain ordre d'assignation
+      const orderResult = await client.query(
+        'SELECT COALESCE(MAX(assigned_order), 0) + 1 as next_order FROM todo_labels WHERE todo_id = $1',
+        [todoId]
+      )
+      const nextOrder = orderResult.rows[0].next_order
+
       await client.query(
-        'INSERT INTO todo_labels (todo_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [todoId, labelId]
+        'INSERT INTO todo_labels (todo_id, label_id, assigned_order) VALUES ($1, $2, $3) ON CONFLICT (todo_id, label_id) DO UPDATE SET assigned_order = $3',
+        [todoId, labelId, nextOrder]
       )
   
       await client.query('COMMIT')
@@ -732,6 +762,345 @@ const addLabelToTodo = async (req, res) => {
     }
   }
 
+// =============================================
+// FONCTIONS CHECKLIST
+// =============================================
+
+const createChecklistItem = async (req, res) => {
+    try {
+        const { todoId } = req.params;
+        const { title, position = 0 } = req.body;
+        const userId = req.user.id;
+
+        if (isNaN(todoId)) {
+            return res.status(400).json({ error: 'ID todo invalide' });
+        }
+
+        if (!title || title.trim() === '') {
+            return res.status(400).json({ error: 'Le titre est requis' });
+        }
+
+        // Vérifier l'accès au todo
+        const todoResult = await pool.query(`
+            SELECT t.*, l.workspace_id
+            FROM todos t
+            JOIN lists l ON t.list_id = l.id
+            WHERE t.id = $1
+        `, [todoId]);
+
+        if (todoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Todo introuvable' });
+        }
+
+        const todo = todoResult.rows[0];
+
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [todo.workspace_id, userId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Accès refusé' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO checklist_items (title, todo_id, position) VALUES ($1, $2, $3) RETURNING *',
+            [title.trim(), todoId, position]
+        );
+
+        res.status(201).json({
+            message: 'Élément de checklist créé avec succès',
+            checklistItem: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Erreur lors de la création de l\'élément de checklist:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
+const updateChecklistItem = async (req, res) => {
+    try {
+        const { todoId, itemId } = req.params;
+        const { title, is_completed } = req.body;
+        const userId = req.user.id;
+
+        if (isNaN(todoId) || isNaN(itemId)) {
+            return res.status(400).json({ error: 'IDs invalides' });
+        }
+
+        // Vérifier l'accès au todo
+        const todoResult = await pool.query(`
+            SELECT t.*, l.workspace_id
+            FROM todos t
+            JOIN lists l ON t.list_id = l.id
+            WHERE t.id = $1
+        `, [todoId]);
+
+        if (todoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Todo introuvable' });
+        }
+
+        const todo = todoResult.rows[0];
+
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [todo.workspace_id, userId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Accès refusé' });
+        }
+
+        // Vérifier que l'élément appartient bien à ce todo
+        const itemCheck = await pool.query(
+            'SELECT id FROM checklist_items WHERE id = $1 AND todo_id = $2',
+            [itemId, todoId]
+        );
+
+        if (itemCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Élément de checklist introuvable' });
+        }
+
+        const updates = [];
+        const values = [];
+        let paramCount = 1;
+
+        if (title !== undefined) {
+            updates.push(`title = $${paramCount}`);
+            values.push(title.trim());
+            paramCount++;
+        }
+
+        if (is_completed !== undefined) {
+            updates.push(`is_completed = $${paramCount}`);
+            values.push(is_completed);
+            paramCount++;
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'Au moins un champ doit être fourni' });
+        }
+
+        values.push(itemId);
+
+        const result = await pool.query(
+            `UPDATE checklist_items SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+            values
+        );
+
+        res.json({
+            message: 'Élément de checklist mis à jour avec succès',
+            checklistItem: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour de l\'élément de checklist:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
+const deleteChecklistItem = async (req, res) => {
+    try {
+        const { todoId, itemId } = req.params;
+        const userId = req.user.id;
+
+        if (isNaN(todoId) || isNaN(itemId)) {
+            return res.status(400).json({ error: 'IDs invalides' });
+        }
+
+        // Vérifier l'accès au todo
+        const todoResult = await pool.query(`
+            SELECT t.*, l.workspace_id
+            FROM todos t
+            JOIN lists l ON t.list_id = l.id
+            WHERE t.id = $1
+        `, [todoId]);
+
+        if (todoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Todo introuvable' });
+        }
+
+        const todo = todoResult.rows[0];
+
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [todo.workspace_id, userId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Accès refusé' });
+        }
+
+        const result = await pool.query(
+            'DELETE FROM checklist_items WHERE id = $1 AND todo_id = $2',
+            [itemId, todoId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Élément de checklist introuvable' });
+        }
+
+        res.json({ message: 'Élément de checklist supprimé avec succès' });
+    } catch (error) {
+        console.error('Erreur lors de la suppression de l\'élément de checklist:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
+const deleteAllChecklistItems = async (req, res) => {
+    try {
+        const { todoId } = req.params;
+        const userId = req.user.id;
+
+        if (isNaN(todoId)) {
+            return res.status(400).json({ error: 'ID todo invalide' });
+        }
+
+        // Vérifier l'accès au todo
+        const todoResult = await pool.query(`
+            SELECT t.*, l.workspace_id
+            FROM todos t
+            JOIN lists l ON t.list_id = l.id
+            WHERE t.id = $1
+        `, [todoId]);
+
+        if (todoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Todo introuvable' });
+        }
+
+        const todo = todoResult.rows[0];
+
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [todo.workspace_id, userId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Accès refusé' });
+        }
+
+        const result = await pool.query(
+            'DELETE FROM checklist_items WHERE todo_id = $1',
+            [todoId]
+        );
+
+        res.json({ 
+            message: `${result.rowCount} éléments de checklist supprimés avec succès`
+        });
+    } catch (error) {
+        console.error('Erreur lors de la suppression de la checklist:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
+// =============================================
+// FONCTIONS ASSIGNMENTS MULTIPLES
+// =============================================
+
+const addTodoAssignment = async (req, res) => {
+    try {
+        const { todoId } = req.params;
+        const { userId: assignedUserId } = req.body;
+        const requestUserId = req.user.id;
+
+        if (isNaN(todoId) || isNaN(assignedUserId)) {
+            return res.status(400).json({ error: 'IDs invalides' });
+        }
+
+        // Vérifier l'accès au todo
+        const todoResult = await pool.query(`
+            SELECT t.*, l.workspace_id
+            FROM todos t
+            JOIN lists l ON t.list_id = l.id
+            WHERE t.id = $1
+        `, [todoId]);
+
+        if (todoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Todo introuvable' });
+        }
+
+        const todo = todoResult.rows[0];
+
+        // Vérifier que l'utilisateur qui fait la requête est membre du workspace
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [todo.workspace_id, requestUserId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Accès refusé' });
+        }
+
+        // Vérifier que l'utilisateur à assigner est membre du workspace
+        const assignedMemberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [todo.workspace_id, assignedUserId]
+        );
+
+        if (assignedMemberCheck.rows.length === 0) {
+            return res.status(400).json({ error: 'L\'utilisateur à assigner n\'est pas membre du workspace' });
+        }
+
+        // Créer ou mettre à jour l'assignation
+        await pool.query(
+            'INSERT INTO todo_assignments (todo_id, user_id) VALUES ($1, $2) ON CONFLICT (todo_id, user_id) DO NOTHING',
+            [todoId, assignedUserId]
+        );
+
+        res.json({ message: 'Assignation ajoutée avec succès' });
+    } catch (error) {
+        console.error('Erreur lors de l\'ajout d\'assignation:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
+const removeTodoAssignment = async (req, res) => {
+    try {
+        const { todoId, userId: assignedUserId } = req.params;
+        const requestUserId = req.user.id;
+
+        if (isNaN(todoId) || isNaN(assignedUserId)) {
+            return res.status(400).json({ error: 'IDs invalides' });
+        }
+
+        // Vérifier l'accès au todo
+        const todoResult = await pool.query(`
+            SELECT t.*, l.workspace_id
+            FROM todos t
+            JOIN lists l ON t.list_id = l.id
+            WHERE t.id = $1
+        `, [todoId]);
+
+        if (todoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Todo introuvable' });
+        }
+
+        const todo = todoResult.rows[0];
+
+        const memberCheck = await pool.query(
+            'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+            [todo.workspace_id, requestUserId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Accès refusé' });
+        }
+
+        const result = await pool.query(
+            'DELETE FROM todo_assignments WHERE todo_id = $1 AND user_id = $2',
+            [todoId, assignedUserId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Assignation introuvable' });
+        }
+
+        res.json({ message: 'Assignation supprimée avec succès' });
+    } catch (error) {
+        console.error('Erreur lors de la suppression d\'assignation:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
 module.exports = {
     createTodo,
     getListTodos,
@@ -741,5 +1110,11 @@ module.exports = {
     moveTodo,
     updateTodosPositions,
     addLabelToTodo,
-    removeLabelFromTodo
+    removeLabelFromTodo,
+    createChecklistItem,
+    updateChecklistItem,
+    deleteChecklistItem,
+    deleteAllChecklistItems,
+    addTodoAssignment,
+    removeTodoAssignment
 };

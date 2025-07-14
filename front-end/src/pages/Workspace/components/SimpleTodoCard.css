@@ -1,106 +1,226 @@
+/* SimpleTodoCard.css - Version simplifiée */
 .simple-todo-card {
-    background: white;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin-bottom: 8px;
-    position: relative;
-    word-wrap: break-word;
-  }
-  
-  .simple-todo-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
-  }
-  
-  .simple-todo-card--dragging {
-    opacity: 0.4;
-    transform: rotate(2deg);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    border: 2px dashed #10b981;
-  }
-  
-  .simple-todo-card--drag-over {
-    border-top: 3px solid #10b981;
-    margin-top: 8px;
-  }
-  
-  .simple-todo-card--drag-over::before {
-    content: '';
-    position: absolute;
-    top: -12px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-bottom: 8px solid #10b981;
-  }
-  
-  .card-labels {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 8px;
-  }
-  
-  .card-label {
-    height: 8px;
-    border-radius: 4px;
-    min-width: 40px;
-    max-width: 80px;
-    flex-shrink: 0;
-  }
-  
-  .card-title {
-    font-size: 14px;
-    line-height: 20px;
-    color: #172b4d;
-    margin: 0;
-    word-break: break-word;
-  }
-  
-  .card-badges {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 8px;
-  }
-  
-  .card-badge {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 12px;
-    color: #5e6c84;
-  }
-  
-  .card-badge-icon {
-    width: 12px;
-    height: 12px;
-  }
-  
-  .card-members {
-    display: flex;
-    margin-left: auto;
-  }
-  
-  .card-member-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #dfe1e6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 600;
-    color: #5e6c84;
-    margin-left: -4px;
-    border: 2px solid white;
-  }
+  background: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 8px;
+  position: relative;
+  word-wrap: break-word;
+}
+
+.card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.simple-todo-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.simple-todo-card--dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  cursor: grabbing !important;
+}
+
+.simple-todo-card--hover-top {
+  position: relative;
+}
+
+.simple-todo-card--hover-top::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #0079bf;
+  border-radius: 2px;
+}
+
+.simple-todo-card--hover-bottom {
+  position: relative;
+}
+
+.simple-todo-card--hover-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #0079bf;
+  border-radius: 2px;
+}
+
+.card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.card-labels.expanded {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.card-label {
+  height: 8px;
+  border-radius: 4px;
+  width: 40px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-label.expanded {
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  min-width: 60px;
+  width: auto;
+  justify-content: center;
+}
+
+.label-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 44px;
+}
+
+.card-label.expanded .label-text {
+  opacity: 1;
+  max-width: none;
+  overflow: visible;
+}
+
+.card-title {
+  font-size: 14px;
+  line-height: 20px;
+  color: #172b4d;
+  margin: 0;
+  word-break: break-word;
+}
+
+.card-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.card-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: #5e6c84;
+}
+
+.card-badge--checklist {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 500;
+}
+
+.card-badge-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.card-members {
+  display: flex;
+  margin-left: auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-assigned-members {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  max-width: 36px;
+  padding-top: 2px;
+}
+
+.card-member-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  border: 2px solid white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-member-avatar:hover {
+  transform: scale(1.1);
+  z-index: 2;
+}
+
+.card-assigned-members .card-member-avatar:not(:first-child) {
+  margin-top: -8px;
+}
+
+.card-member-overflow {
+  background: #6b7280;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.checklist-progress-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 400;
+  transition: background-color 0.3s ease;
+}
+
+.checklist-progress-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}

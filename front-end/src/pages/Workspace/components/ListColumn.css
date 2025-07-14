@@ -1,3 +1,4 @@
+/* ListColumn.css - Version simplifiée */
 .list-column {
   background: #f8fafc;
   border-radius: 12px;
@@ -9,9 +10,13 @@
   transition: all 0.2s ease;
 }
 
-.list-column--dragover {
-  background: #f0f9ff;
-  border-color: #0ea5e9;
+/* Colonne en cours de drag */
+.list-column--dragging {
+  opacity: 0.6;
+  transform: rotate(1deg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  cursor: grabbing !important;
 }
 
 .list-header {
@@ -145,8 +150,8 @@
 .todos-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 4px;
+  gap: 0; /* Pas de gap pour pouvoir gérer les espaces nous-mêmes */
+  min-height: 20px;
 }
 
 .add-todo-button {
@@ -171,27 +176,24 @@
   margin-right: 6px;
 }
 
+/* Zone de drop simple - juste l'espace minimal */
 .drop-zone {
-  min-height: 20px;
-  border: 2px dashed transparent;
-  border-radius: 8px;
+  min-height: 4px;
   transition: all 0.2s ease;
-  margin-bottom: 8px;
 }
 
 .drop-zone--active {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-}
-
-.drop-zone--active::before {
-  content: 'Déposer ici';
-  display: block;
-  text-align: center;
-  color: #10b981;
-  font-size: 12px;
+  min-height: 60px;
+  background: #f0f9ff;
+  border: 2px dashed #0079bf;
+  border-radius: 8px;
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0079bf;
+  font-size: 14px;
   font-weight: 500;
-  padding: 8px;
 }
 
 @media (max-width: 768px) {
@@ -207,4 +209,29 @@
   .list-menu-dropdown {
     min-width: 140px;
   }
+}
+
+/* Bouton Add Card */
+.add-card-button {
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 8px;
+  background: transparent;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-card-button:hover {
+  background: rgba(16, 185, 129, 0.04);
+  border-color: #10b981;
+  color: #10b981;
 }

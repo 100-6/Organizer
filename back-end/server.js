@@ -8,6 +8,7 @@ const workspaceRoutes = require('./routes/workspaces');
 const listRoutes = require('./routes/list');
 const todoRoutes = require('./routes/todo');
 const labelRoutes = require('./routes/label');
+const invitationRoutes = require('./routes/invitation');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -22,6 +23,7 @@ app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/lists', listRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/labels', labelRoutes);
+app.use('/api/invitations', invitationRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Todo App Backend API', port: PORT });

@@ -8,7 +8,9 @@ const {
     deleteWorkspace,
     addMember,
     removeMember,
-    leaveWorkspace
+    leaveWorkspace,
+    updateMemberRole,
+    checkUserPermissions
 } = require('../controllers/workspaceController');
 const { authenticateToken } = require('../middleware/auth');
 const {
@@ -25,5 +27,7 @@ router.delete('/:id', authenticateToken, deleteWorkspace);
 router.post('/:id/members', authenticateToken, validateMemberAdd, addMember);
 router.delete('/:id/members/:memberId', authenticateToken, removeMember);
 router.delete('/:id/leave', authenticateToken, leaveWorkspace);
+router.put('/:workspaceId/members/:memberId/role', authenticateToken, updateMemberRole);
+router.get('/:workspaceId/permissions', authenticateToken, checkUserPermissions);
 
 module.exports = router;

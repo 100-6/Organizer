@@ -9,7 +9,13 @@ const {
     moveTodo,
     updateTodosPositions,
     addLabelToTodo,
-    removeLabelFromTodo
+    removeLabelFromTodo,
+    createChecklistItem,
+    updateChecklistItem,
+    deleteChecklistItem,
+    deleteAllChecklistItems,
+    addTodoAssignment,
+    removeTodoAssignment
 } = require('../controllers/todoController');
 const { authenticateToken } = require('../middleware/auth');
 const {
@@ -27,5 +33,16 @@ router.patch('/:id/move', authenticateToken, validateTodoMove, moveTodo);
 router.patch('/positions', authenticateToken, updateTodosPositions);
 router.post('/:todoId/labels', authenticateToken, addLabelToTodo);
 router.delete('/:todoId/labels/:labelId', authenticateToken, removeLabelFromTodo);
+
+// Routes pour les checklists
+router.post('/:todoId/checklist', authenticateToken, createChecklistItem);
+router.delete('/:todoId/checklist', authenticateToken, deleteAllChecklistItems);
+router.put('/:todoId/checklist/:itemId', authenticateToken, updateChecklistItem);
+router.patch('/:todoId/checklist/:itemId', authenticateToken, updateChecklistItem);
+router.delete('/:todoId/checklist/:itemId', authenticateToken, deleteChecklistItem);
+
+// Routes pour les assignations multiples
+router.post('/:todoId/assignments', authenticateToken, addTodoAssignment);
+router.delete('/:todoId/assignments/:userId', authenticateToken, removeTodoAssignment);
 
 module.exports = router;

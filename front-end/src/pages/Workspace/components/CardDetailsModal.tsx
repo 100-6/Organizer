@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import LabelMenu from './LabelMenu'
+import Checklist from './Checklist'
 import './CardDetailsModal.css'
 
 interface Todo {
@@ -9,6 +10,7 @@ interface Todo {
   list_id: number
   assigned_to: number | null
   assigned_username: string | null
+  assigned_members?: Member[]
   due_date: string | null
   due_time: string | null
   position: number
@@ -22,9 +24,11 @@ interface Todo {
 
 interface ChecklistItem {
   id: number
-  text: string
-  completed: boolean
+  title: string
+  is_completed: boolean
+  todo_id: number
   position: number
+  created_at: string
 }
 
 interface Label {
@@ -67,7 +71,11 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [showLabelMenu, setShowLabelMenu] = useState(false)
+  const [showMemberMenu, setShowMemberMenu] = useState(false)
+  const [checklistExpanded, setChecklistExpanded] = useState(true)
   const [currentTodoLabels, setCurrentTodoLabels] = useState<Label[]>([])
+  const [currentChecklistItems, setCurrentChecklistItems] = useState<ChecklistItem[]>([])
+  const [editingLabel, setEditingLabel] = useState<Label | null>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const descriptionRef = useRef<HTMLTextAreaElement>(null)
 
@@ -76,10 +84,26 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       setTitle(todo.title)
       setDescription(todo.description || '')
       setCurrentTodoLabels(todo.labels || [])
+      setCurrentChecklistItems(todo.checklist_items || [])
     }
   }, [todo, isOpen])
 
+  // Sync checklist items when todo changes
+  useEffect(() => {
+    if (todo) {
+      setCurrentChecklistItems(todo.checklist_items || [])
+    }
+  }, [todo?.checklist_items])
+
+  // Sync labels when they change
+  useEffect(() => {
+    if (todo) {
+      setCurrentTodoLabels(todo.labels || [])
+    }
+  }, [todo?.labels])
+
   if (!isOpen || !todo) return null
+
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle)
@@ -136,12 +160,213 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
 
   const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
     textarea.style.height = 'auto'
-    textarea.style.height = `${textarea.scrollHeight}px`
+  }
+
+  const handleAddChecklistItem = async (title: string) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}/checklist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, position: currentChecklistItems.length })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        // Immediate update to local state
+        setCurrentChecklistItems(prev => [...prev, data.checklistItem])
+        onLabelsUpdated() // Refresh the todo data
+      }
+    } catch (error) {
+      console.error('Error adding checklist item:', error)
+    }
+  }
+
+  const handleToggleChecklistItem = async (itemId: number, completed: boolean) => {
+    // Immediate update to local state
+    setCurrentChecklistItems(prev => 
+      prev.map(item => 
+        item.id === itemId ? { ...item, is_completed: completed } : item
+      )
+    )
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}/checklist/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_completed: completed })
+      })
+      
+      if (response.ok) {
+        onLabelsUpdated() // Refresh the todo data
+      } else {
+        // Revert on error
+        setCurrentChecklistItems(prev => 
+          prev.map(item => 
+            item.id === itemId ? { ...item, is_completed: !completed } : item
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Error toggling checklist item:', error)
+      // Revert on error
+      setCurrentChecklistItems(prev => 
+        prev.map(item => 
+          item.id === itemId ? { ...item, is_completed: !completed } : item
+        )
+      )
+    }
+  }
+
+  const handleUpdateChecklistItem = async (itemId: number, title: string) => {
+    // Immediate update to local state
+    setCurrentChecklistItems(prev => 
+      prev.map(item => 
+        item.id === itemId ? { ...item, title } : item
+      )
+    )
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}/checklist/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title })
+      })
+      
+      if (response.ok) {
+        onLabelsUpdated() // Refresh the todo data
+      }
+    } catch (error) {
+      console.error('Error updating checklist item:', error)
+    }
+  }
+
+  const handleDeleteChecklistItem = async (itemId: number) => {
+    // Immediate update to local state
+    setCurrentChecklistItems(prev => prev.filter(item => item.id !== itemId))
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}/checklist/${itemId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (response.ok) {
+        onLabelsUpdated() // Refresh the todo data
+      }
+    } catch (error) {
+      console.error('Error deleting checklist item:', error)
+    }
+  }
+
+
+  const handleAssignMember = async (member: Member) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ assignedTo: member.id })
+      })
+      
+      if (response.ok) {
+        setShowMemberMenu(false)
+        onLabelsUpdated() // Refresh the todo data
+      }
+    } catch (error) {
+      console.error('Error assigning member:', error)
+    }
+  }
+
+  const handleRemoveMember = async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ assignedTo: null })
+      })
+      
+      if (response.ok) {
+        onLabelsUpdated() // Refresh the todo data
+      }
+    } catch (error) {
+      console.error('Error removing member:', error)
+    }
+  }
+
+  const handleAssignMultipleMember = async (member: Member) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}/assignments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: member.id })
+      })
+      
+      if (response.ok) {
+        onLabelsUpdated() // Refresh the todo data
+      }
+    } catch (error) {
+      console.error('Error assigning member:', error)
+    }
+  }
+
+  const handleRemoveMultipleMember = async (memberId: number) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}/assignments/${memberId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (response.ok) {
+        onLabelsUpdated() // Refresh the todo data
+      }
+    } catch (error) {
+      console.error('Error removing member assignment:', error)
+    }
   }
 
   const getChecklistProgress = () => {
-    if (!todo.checklist_items || todo.checklist_items.length === 0) return 0
-    return (todo.completed_checklist_count / todo.checklist_count) * 100
+    if (!currentChecklistItems || currentChecklistItems.length === 0) return 0
+    const completedCount = currentChecklistItems.filter(item => item.is_completed).length
+    return (completedCount / currentChecklistItems.length) * 100
+  }
+
+  const getChecklistColor = () => {
+    if (!currentChecklistItems || currentChecklistItems.length === 0) return '#6b7280' // gris
+    
+    const completedCount = currentChecklistItems.filter(item => item.is_completed).length
+    const totalCount = currentChecklistItems.length
+    const percentage = (completedCount / totalCount) * 100
+    
+    if (percentage === 0) return '#6b7280' // gris
+    if (percentage < 25) return '#ef4444' // rouge
+    if (percentage < 50) return '#f59e0b' // jaune
+    if (percentage < 100) return '#3b82f6' // bleu
+    return '#10b981' // vert (100%)
   }
 
   return (
@@ -188,38 +413,44 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
 
         <div className="card-details-body">
           <div className="card-details-main">
-            {currentTodoLabels && currentTodoLabels.length > 0 && (
-              <div className="card-section">
-                <div className="card-section-header">
-                  <div className="card-section-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2"/>
-                      <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
-                    </svg>
-                  </div>
-                  <h3 className="card-section-title">Labels</h3>
+            <div className="card-section">
+              <div className="card-section-header">
+                <div className="card-section-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2"/>
+                    <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+                  </svg>
                 </div>
-                <div className="card-labels-list">
-                  {currentTodoLabels.map(label => (
-                    <div
-                      key={label.id}
-                      className="card-label-item"
-                      style={{ backgroundColor: label.color }}
-                    >
-                      {label.name || ''}
-                    </div>
-                  ))}
-                  <button
-                    className="card-label-add-button"
-                    onClick={() => setShowLabelMenu(true)}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </button>
-                </div>
+                <h3 className="card-section-title">Labels</h3>
               </div>
-            )}
+              <div className="card-labels-list">
+                {currentTodoLabels && currentTodoLabels.map(label => (
+                  <div
+                    key={label.id}
+                    className="card-label-item"
+                    style={{ backgroundColor: label.color }}
+                    onClick={() => {
+                      setEditingLabel(label)
+                      setShowLabelMenu(true)
+                    }}
+                  >
+                    {label.name || ''}
+                  </div>
+                ))}
+                <button
+                  className="card-label-add-button"
+                  onClick={() => {
+                    setEditingLabel(null)
+                    setShowLabelMenu(true)
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
 
             <div className="card-section">
               <div className="card-section-header">
@@ -248,47 +479,144 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
               />
             </div>
 
-            {todo.checklist_items && todo.checklist_items.length > 0 && (
+            {currentChecklistItems && currentChecklistItems.length > 0 && (
               <div className="card-section">
-                <div className="card-section-header">
-                  <div className="card-section-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
-                    </svg>
+                <div className="card-section-header clickable" onClick={() => setChecklistExpanded(!checklistExpanded)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="card-section-icon" style={{ color: getChecklistColor() }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                    </div>
+                    <h3 className="card-section-title">Checklist</h3>
                   </div>
-                  <h3 className="card-section-title">Checklist</h3>
+                  <div className="checklist-summary">
+                    <button className="checklist-expand-button">
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none"
+                        style={{ transform: checklistExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                      >
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="checklist-section">
-                  <div className="checklist-header">
-                    <h4 className="checklist-title">Checklist</h4>
-                    <span className="checklist-progress">
-                      {todo.completed_checklist_count}/{todo.checklist_count}
-                    </span>
-                  </div>
-                  <div className="checklist-progress-bar">
-                    <div 
-                      className="checklist-progress-fill"
-                      style={{ width: `${getChecklistProgress()}%` }}
-                    />
-                  </div>
-                  <div className="checklist-items">
-                    {todo.checklist_items.map(item => (
+                
+                <div className="checklist-progress-bar">
+                  <div 
+                    className="checklist-progress-fill"
+                    style={{ 
+                      width: `${getChecklistProgress()}%`,
+                      backgroundColor: getChecklistColor()
+                    }}
+                  />
+                </div>
+
+                {checklistExpanded && (
+                  <div className="checklist-items-container">
+                    {currentChecklistItems.map(item => (
                       <div key={item.id} className="checklist-item">
                         <input
                           type="checkbox"
                           className="checklist-checkbox"
-                          checked={item.completed}
-                          onChange={() => {
-                            // Handle checklist item toggle
+                          checked={item.is_completed}
+                          onChange={(e) => handleToggleChecklistItem(item.id, e.target.checked)}
+                        />
+                        <input
+                          type="text"
+                          className="checklist-item-text"
+                          value={item.title}
+                          onChange={(e) => {
+                            setCurrentChecklistItems(prev => 
+                              prev.map(i => 
+                                i.id === item.id ? { ...i, title: e.target.value } : i
+                              )
+                            )
+                          }}
+                          onBlur={(e) => handleUpdateChecklistItem(item.id, e.target.value)}
+                          style={{ 
+                            textDecoration: item.is_completed ? 'line-through' : 'none',
+                            opacity: item.is_completed ? 0.6 : 1
                           }}
                         />
-                        <span className={`checklist-item-text ${item.completed ? 'checklist-item-text--completed' : ''}`}>
-                          {item.text}
-                        </span>
+                        <button 
+                          className="checklist-item-delete"
+                          onClick={() => handleDeleteChecklistItem(item.id)}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                          </svg>
+                        </button>
                       </div>
                     ))}
+                    
+                    <button 
+                      className="add-checklist-item-button"
+                      onClick={() => handleAddChecklistItem('New item')}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      Add an item
+                    </button>
                   </div>
+                )}
+              </div>
+            )}
+
+            {(todo.assigned_to || (todo.assigned_members && todo.assigned_members.length > 0)) && (
+              <div className="card-section">
+                <div className="card-section-header">
+                  <div className="card-section-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  <h3 className="card-section-title">Membres assignés</h3>
+                </div>
+                <div className="assigned-members-list">
+                  {/* Legacy single assignment */}
+                  {todo.assigned_to && (
+                    <div className="assigned-member-item">
+                      <div className="member-avatar">
+                        {todo.assigned_username?.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="member-name">{todo.assigned_username}</span>
+                      <button 
+                        className="remove-assignment"
+                        onClick={handleRemoveMember}
+                        title="Retirer ce membre"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Multiple assignments */}
+                  {todo.assigned_members && todo.assigned_members.map(member => (
+                    <div key={member.id} className="assigned-member-item">
+                      <div className="member-avatar">
+                        {member.username.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="member-name">{member.username}</span>
+                      <button 
+                        className="remove-assignment"
+                        onClick={() => handleRemoveMultipleMember(member.id)}
+                        title="Retirer ce membre"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -299,7 +627,10 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
               <div className="sidebar-section-title">Add to card</div>
               <button 
                 className="sidebar-button"
-                onClick={() => setShowLabelMenu(true)}
+                onClick={() => {
+                  setEditingLabel(null)
+                  setShowLabelMenu(true)
+                }}
               >
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2"/>
@@ -307,7 +638,12 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                 </svg>
                 Labels
               </button>
-              <button className="sidebar-button">
+              <button 
+                className="sidebar-button"
+                onClick={() => {
+                  handleAddChecklistItem('New item')
+                }}
+              >
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2"/>
                   <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
@@ -323,7 +659,10 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                 </svg>
                 Dates
               </button>
-              <button className="sidebar-button">
+              <button 
+                className="sidebar-button"
+                onClick={() => setShowMemberMenu(true)}
+              >
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2"/>
                   <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
@@ -362,14 +701,85 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         {showLabelMenu && (
           <LabelMenu
             isOpen={showLabelMenu}
-            onClose={() => setShowLabelMenu(false)}
+            onClose={() => {
+              setShowLabelMenu(false)
+              setEditingLabel(null)
+            }}
             labels={labels}
             selectedLabels={currentTodoLabels}
             onAddLabel={handleAddLabel}
             onRemoveLabel={handleRemoveLabel}
             onLabelsUpdated={onLabelsUpdated}
             workspaceId={todo.workspace_id.toString()}
+            editingLabel={editingLabel}
           />
+        )}
+
+        {showMemberMenu && (
+          <div className="member-menu-overlay" onClick={() => setShowMemberMenu(false)}>
+            <div className="member-menu" onClick={(e) => e.stopPropagation()}>
+              <div className="member-menu-header">
+                <h3>Gérer les membres</h3>
+                <button onClick={() => setShowMemberMenu(false)} className="close-button">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="member-menu-content">
+                {members.map(member => {
+                  const isAssigned = todo.assigned_to === member.id || 
+                    (todo.assigned_members && todo.assigned_members.some(m => m.id === member.id))
+                  
+                  return (
+                    <div 
+                      key={member.id}
+                      className={`member-option ${isAssigned ? 'member-option--selected' : ''}`}
+                      onClick={() => {
+                        if (isAssigned) {
+                          if (todo.assigned_to === member.id) {
+                            handleRemoveMember()
+                          } else {
+                            handleRemoveMultipleMember(member.id)
+                          }
+                        } else {
+                          handleAssignMultipleMember(member)
+                        }
+                      }}
+                    >
+                      <div className="member-option-avatar">
+                        {member.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="member-option-info">
+                        <span className="member-option-name">{member.username}</span>
+                        <span className="member-option-email">{member.email}</span>
+                      </div>
+                      {isAssigned && (
+                        <div className="member-option-check">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2"/>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                {todo.assigned_to && (
+                  <div className="member-menu-unassign">
+                    <button 
+                      className="unassign-button"
+                      onClick={handleRemoveMember}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                      Retirer l'assignation
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

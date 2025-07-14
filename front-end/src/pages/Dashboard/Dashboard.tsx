@@ -8,8 +8,11 @@ import {
   Avatar, 
   Modal, 
   FormInput,
-  FormTextarea
+  FormTextarea,
+  TeamManagementModal,
+  InviteMemberModal
 } from '../../components'
+import InvitationsPanel from '../../components/InvitationsPanel'
 import WorkspaceCard from './components/WorkspaceCard'
 import './Dashboard.css'
 
@@ -34,6 +37,8 @@ const Dashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showTeamModal, setShowTeamModal] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null)
   const [newWorkspace, setNewWorkspace] = useState({ name: '', description: '' })
   const [renameData, setRenameData] = useState({ name: '', description: '' })
@@ -198,8 +203,8 @@ const Dashboard = () => {
         setShowRenameModal(true)
         break
       case 'addMember':
-        console.log(`Ajouter membre au workspace ${workspaceId}`)
-        // TODO: Implémenter modal d'ajout de membre
+        setSelectedWorkspace(workspace)
+        setShowInviteModal(true)
         break
       case 'settings':
         console.log(`Paramètres du workspace ${workspaceId}`)
@@ -210,8 +215,8 @@ const Dashboard = () => {
         setShowDeleteModal(true)
         break
       case 'teamAccess':
-        console.log(`Accès équipe du workspace ${workspaceId}`)
-        // TODO: Implémenter gestion des accès
+        setSelectedWorkspace(workspace)
+        setShowTeamModal(true)
         break
     }
   }
@@ -279,6 +284,8 @@ const Dashboard = () => {
               onClose={() => setError('')}
             />
           )}
+
+          <InvitationsPanel onInvitationHandled={fetchWorkspaces} />
 
           <div className="workspaces-grid">
             {filteredWorkspaces.length === 0 ? (
@@ -461,6 +468,34 @@ const Dashboard = () => {
           </div>
         </div>
       </Modal>
+
+      {selectedWorkspace && (
+        <>
+          <TeamManagementModal
+            isOpen={showTeamModal}
+            onClose={() => {
+              setShowTeamModal(false)
+              setSelectedWorkspace(null)
+            }}
+            workspaceId={selectedWorkspace.id.toString()}
+            workspaceName={selectedWorkspace.name}
+            currentUserRole={selectedWorkspace.role}
+          />
+          
+          <InviteMemberModal
+            isOpen={showInviteModal}
+            onClose={() => {
+              setShowInviteModal(false)
+              setSelectedWorkspace(null)
+            }}
+            workspaceId={selectedWorkspace.id.toString()}
+            onInviteSent={() => {
+              setShowInviteModal(false)
+              setSelectedWorkspace(null)
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }

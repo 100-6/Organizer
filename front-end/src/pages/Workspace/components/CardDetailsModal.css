@@ -9,8 +9,7 @@
     align-items: flex-start;
     justify-content: center;
     z-index: 1000;
-    padding: 48px 12px 12px;
-    overflow-y: auto;
+    padding: 24px 12px;
   }
   
   .card-details-modal {
@@ -20,6 +19,15 @@
     max-width: 768px;
     position: relative;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    margin: auto 0;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer et Edge */
+  }
+
+  .card-details-modal::-webkit-scrollbar {
+    display: none; /* Safari et Chrome */
   }
   
   .card-details-header {
@@ -125,6 +133,18 @@
     margin-bottom: 8px;
   }
   
+  .card-section-header .card-section-icon {
+    flex-shrink: 0;
+  }
+  
+  .card-section-header .card-section-title {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #172b4d;
+  }
+  
   .card-section-icon {
     color: #5e6c84;
   }
@@ -193,6 +213,8 @@
   
   .card-label-item:hover {
     opacity: 0.8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
   .card-label-add-button {
@@ -306,10 +328,37 @@
   }
   
   .checklist-checkbox {
-    width: 16px;
-    height: 16px;
-    margin-top: 2px;
-    accent-color: #0079bf;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-right: 8px;
+    appearance: none;
+    background: white;
+  }
+
+  .checklist-checkbox:hover {
+    border-color: #10b981;
+  }
+
+  .checklist-checkbox:checked {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+  }
+
+  .checklist-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
   }
   
   .checklist-item-text {
@@ -324,6 +373,370 @@
     color: #5e6c84;
   }
   
+  /* Member assignment styles */
+.card-member-assignment {
+  margin-top: 8px;
+}
+
+.assigned-member-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.assigned-member-info:hover {
+  background: #e5e7eb;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #10b981;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.member-name {
+  flex: 1;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.remove-assignment {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.remove-assignment:hover {
+  background: #dc2626;
+}
+
+.add-member-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.add-member-button:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #f8fafc;
+}
+
+.assign-member-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.assign-member-button:hover {
+  background: #f3f4f6;
+  border-color: #10b981;
+  color: #10b981;
+}
+
+/* Member menu overlay and modal */
+.member-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.member-menu {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 320px;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+.member-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.member-menu-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.close-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: #6b7280;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.close-button:hover {
+  background: #f3f4f6;
+}
+
+.member-menu-content {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.no-assignment {
+  padding: 8px 12px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #6b7280;
+  text-align: center;
+  font-style: italic;
+}
+
+.member-list {
+  padding: 8px;
+}
+
+/* Nouvelles sections pour le menu membre */
+.assigned-members-section {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.assigned-members-in-menu {
+  padding: 8px;
+}
+
+.assigned-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.assigned-member-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.assigned-member-item:hover {
+  background: #e5e7eb;
+}
+
+.member-option.assigned {
+  background: #dbeafe;
+  border: 1px solid #3b82f6;
+}
+
+.member-option.assigned:hover {
+  background: #bfdbfe;
+}
+
+.remove-member-btn,
+.add-member-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-member-btn {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.remove-member-btn:hover {
+  background: #fee2e2;
+  transform: scale(1.1);
+}
+
+.add-member-btn {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.member-option:hover .add-member-btn {
+  background: #dcfce7;
+  transform: scale(1.1);
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: #10b981;
+  color: white;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-primary:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.member-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.member-option:hover {
+  background: #f3f4f6;
+}
+
+.member-option.selected,
+.member-option--selected {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #3b82f6;
+}
+
+.member-option-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #10b981;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.member-option-avatar.empty {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.member-option-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.member-option-name {
+  font-weight: 500;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.member-option-email {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
+.member-option-check {
+  color: #10b981;
+  display: flex;
+  align-items: center;
+}
+
+.member-menu-unassign {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.unassign-button {
+  width: 100%;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.unassign-button:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
   @media (max-width: 768px) {
     .card-details-modal {
       max-width: 100%;
@@ -347,3 +760,149 @@
       margin-right: 8px;
     }
   }
+
+/* Checklist custom styles */
+.card-section-header.clickable {
+  cursor: pointer;
+  justify-content: space-between;
+}
+
+.checklist-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checklist-delete-button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checklist-delete-button:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.checklist-count {
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 30px;
+  text-align: center;
+}
+
+.checklist-expand-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #6b7280;
+}
+
+.checklist-expand-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #374151;
+}
+
+.checklist-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.checklist-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 2px;
+}
+
+.checklist-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.checklist-item:hover {
+  background: #f9fafb;
+}
+
+
+.checklist-item-text {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.checklist-item-text:focus {
+  outline: none;
+  background: white;
+  box-shadow: 0 0 0 2px #10b981;
+}
+
+.checklist-item-delete {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.checklist-item:hover .checklist-item-delete {
+  opacity: 1;
+}
+
+.checklist-item-delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.add-checklist-item-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #6b7280;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+}
+
+.add-checklist-item-button:hover {
+  background: rgba(16, 185, 129, 0.04);
+  border-color: #10b981;
+  color: #10b981;
+}

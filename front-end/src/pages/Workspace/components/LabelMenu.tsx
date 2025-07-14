@@ -19,15 +19,17 @@ interface LabelMenuProps {
   onRemoveLabel: (labelId: number) => void
   onLabelsUpdated: () => void
   workspaceId: string
+  editLabelId?: number
+  editingLabel?: Label | null
 }
 
 const BASE_LABELS = [
   { color: '#10B981', id: 'green' },
   { color: '#3B82F6', id: 'blue' }, 
   { color: '#8B5CF6', id: 'purple' },
+  { color: '#FBBF24', id: 'yellow' },
   { color: '#F59E0B', id: 'orange' },
-  { color: '#EF4444', id: 'red' },
-  { color: '#FBBF24', id: 'yellow' }
+  { color: '#EF4444', id: 'red' }
 ]
 
 const LabelMenu: React.FC<LabelMenuProps> = ({
@@ -38,7 +40,9 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
   onAddLabel,
   onRemoveLabel,
   onLabelsUpdated,
-  workspaceId
+  workspaceId,
+  editLabelId,
+  editingLabel
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -73,7 +77,27 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     if (isOpen && labels.length >= 0) {
       createMissingBaseLabels()
     }
-  }, [isOpen, labels])
+  }, [isOpen, labels.length])
+
+  useEffect(() => {
+    if (editingLabel) {
+      setEditingLabelId(editingLabel.id)
+      setEditName(editingLabel.name || '')
+    }
+  }, [editingLabel])
+
+  useEffect(() => {
+    if (isOpen) {
+      setSearchTerm('')
+      setError('')
+      if (editLabelId && !editingLabelId) {
+        setEditingLabelId(editLabelId)
+        const labelToEdit = labels.find(l => l.id === editLabelId)
+        setEditName(labelToEdit?.name || '')
+      }
+    }
+  }, [isOpen, editLabelId])
+
 
   const createMissingBaseLabels = async () => {
     const token = localStorage.getItem('accessToken')
@@ -123,13 +147,13 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     return selectedLabels.some(label => label.id === labelId)
   }
 
-  const handleLabelToggle = (label: Label) => {
+  const handleLabelToggle = async (label: Label) => {
     const isSelected = isLabelSelected(label.id)
     
     if (isSelected) {
-      onRemoveLabel(label.id)
+      await onRemoveLabel(label.id)
     } else {
-      onAddLabel(label.id)
+      await onAddLabel(label.id)
     }
   }
 
@@ -165,6 +189,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
       if (response.ok) {
         setEditingLabelId(null)
         setEditName('')
+        setError('')
         onLabelsUpdated()
       } else {
         if (response.status === 409 || data.error?.includes('already exists')) {
@@ -187,37 +212,38 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
     setError('')
   }
 
-  const handleDeleteLabel = async (labelId: number) => {
-    const label = labels.find(l => l.id === labelId)
-    const isBaseLabel = label && BASE_LABELS.some(base => base.color === label.color)
-    
-    if (isBaseLabel) {
-      setEditingLabelId(labelId)
-      setEditName('')
-      await handleSaveName()
-      return
-    }
+  // Unused function - remove if not needed
+  // const handleDeleteLabel = async (labelId: number) => {
+  //   const label = labels.find(l => l.id === labelId)
+  //   const isBaseLabel = label && BASE_LABELS.some(base => base.color === label.color)
+  //   
+  //   if (isBaseLabel) {
+  //     setEditingLabelId(labelId)
+  //     setEditName('')
+  //     await handleSaveName()
+  //     return
+  //   }
 
-    if (!window.confirm('Are you sure you want to delete this label?')) {
-      return
-    }
+  //   if (!window.confirm('Are you sure you want to delete this label?')) {
+  //     return
+  //   }
 
-    try {
-      const token = localStorage.getItem('accessToken')
-      const response = await fetch(`/api/labels/${labelId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+  //   try {
+  //     const token = localStorage.getItem('accessToken')
+  //     const response = await fetch(`/api/labels/${labelId}`, {
+  //       method: 'DELETE',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`
+  //       }
+  //     })
 
-      if (response.ok) {
-        onLabelsUpdated()
-      }
-    } catch (error) {
-      console.error('Error deleting label:', error)
-    }
-  }
+  //     if (response.ok) {
+  //       onLabelsUpdated()
+  //     }
+  //   } catch (error) {
+  //     console.error('Error deleting label:', error)
+  //   }
+  // }
 
   const handleCreateModalClose = () => {
     setShowCreateModal(false)
@@ -259,7 +285,6 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
 
             <div className="labels-list">
               {filteredLabels.map(label => {
-                const isBaseLabel = BASE_LABELS.some(base => base.color === label.color)
                 const isSelected = isLabelSelected(label.id)
                 
                 return (
@@ -270,6 +295,7 @@ const LabelMenu: React.FC<LabelMenuProps> = ({
                         className="label-checkbox"
                         checked={isSelected}
                         onChange={() => handleLabelToggle(label)}
+                        key={`${label.id}-${isSelected}`}
                       />
                     </label>
 

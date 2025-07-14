@@ -90,6 +90,7 @@ const Workspace = () => {
   
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [isCreatingList, setIsCreatingList] = useState(false)
+  const [globalExpandedLabels, setGlobalExpandedLabels] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -351,8 +352,30 @@ const Workspace = () => {
     }
   }
 
-  const handleOpenCardDetails = (todo: Todo) => {
-    setSelectedTodo({ ...todo, workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
+  const handleOpenCardDetails = async (todo: Todo) => {
+    try {
+      // Fetch complete todo details including checklist items
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/todos/${todo.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const detailedTodo = {
+          ...data.todo,
+          workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id
+        }
+        setSelectedTodo(detailedTodo)
+      } else {
+        // Fallback to basic todo data
+        setSelectedTodo({ ...todo, workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
+      }
+    } catch (error) {
+      console.error('Error fetching todo details:', error)
+      // Fallback to basic todo data
+      setSelectedTodo({ ...todo, workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
+    }
     setShowCardDetailsModal(true)
   }
 
@@ -361,8 +384,35 @@ const Workspace = () => {
     setShowCardDetailsModal(false)
   }
 
+  const refreshSelectedTodo = async () => {
+    if (selectedTodo) {
+      try {
+        const token = localStorage.getItem('accessToken')
+        const response = await fetch(`/api/todos/${selectedTodo.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          const detailedTodo = {
+            ...data.todo,
+            workspace_id: selectedTodo.workspace_id
+          }
+          setSelectedTodo(detailedTodo)
+        }
+      } catch (error) {
+        console.error('Error refreshing todo details:', error)
+      }
+    }
+  }
+
   const handleAddMember = () => {
     console.log('Ajouter un membre - fonction à implémenter')
+  }
+
+  const handleLabelsUpdated = async () => {
+    await fetchWorkspaceData()
+    await refreshSelectedTodo()
   }
 
   const handleSettings = () => {
@@ -450,6 +500,8 @@ const Workspace = () => {
                     onDeleteList={() => handleDeleteList(list.id)}
                     onMoveTodo={handleMoveTodo}
                     onListNameUpdated={fetchWorkspaceData}
+                    globalExpandedLabels={globalExpandedLabels}
+                    setGlobalExpandedLabels={setGlobalExpandedLabels}
                     onUpdateTodosOrder={(reorderedTodos) => handleUpdateTodosOrder(list.id, reorderedTodos)}
                     index={idx}
                     moveList={moveList}
@@ -516,7 +568,7 @@ const Workspace = () => {
             labels={labels}
             members={workspace.members}
             listName={selectedTodo ? getListName(selectedTodo.list_id) : ''}
-            onLabelsUpdated={fetchWorkspaceData}
+            onLabelsUpdated={handleLabelsUpdated}
           />
         </div>
       </DndProvider>

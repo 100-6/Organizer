@@ -328,27 +328,6 @@
     color: #172b4d;
   }
   
-  /* Scrollbar personnalisée */
-  .labels-section::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  .labels-section::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  .labels-section::-webkit-scrollbar-thumb {
-    background: #dfe1e6;
-    border-radius: 3px;
-  }
-  
-  .labels-section::-webkit-scrollbar-thumb:hover {
-    background: #c1c7cd;
-  }
-  
-  /* Animation pour les labels vides - SUPPRIMÉ */
-  /* .label-display:not(:hover) .label-name:empty::after était ici */
-  
   /* Responsive */
   @media (max-width: 768px) {
     .label-menu-trello {

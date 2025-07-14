@@ -52,6 +52,8 @@ interface ListColumnProps {
   onUpdateTodosOrder?: (todos: Todo[]) => void
   index: number
   moveList: (from: number, to: number) => void
+  globalExpandedLabels: boolean
+  setGlobalExpandedLabels: (expanded: boolean) => void
 }
 
 type DragListItem = { index: number }
@@ -68,7 +70,9 @@ const ListColumn = ({
   onListNameUpdated,
   onUpdateTodosOrder,
   index,
-  moveList
+  moveList,
+  globalExpandedLabels,
+  setGlobalExpandedLabels
 }: ListColumnProps) => {
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -301,6 +305,8 @@ const ListColumn = ({
                 index={idx}
                 moveTodo={moveTodoWithinList}
                 onClick={() => onEditTodo(todo)}
+                globalExpandedLabels={globalExpandedLabels}
+                setGlobalExpandedLabels={setGlobalExpandedLabels}
               />
             )
           })}
