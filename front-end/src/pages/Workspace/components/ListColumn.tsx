@@ -45,6 +45,7 @@ interface ListColumnProps {
   labels: Label[]
   onCreateTodo: (title: string) => void
   onEditTodo: (todo: Todo) => void
+  onChecklistClick?: (todo: Todo) => void
   onDeleteTodo: (todoId: number) => void
   onDeleteList: () => void
   onMoveTodo: (todoId: number, targetListId: number) => void
@@ -64,6 +65,7 @@ const ListColumn = ({
   labels,
   onCreateTodo,
   onEditTodo,
+  onChecklistClick,
   onDeleteTodo,
   onDeleteList,
   onMoveTodo,
@@ -305,6 +307,7 @@ const ListColumn = ({
                 index={idx}
                 moveTodo={moveTodoWithinList}
                 onClick={() => onEditTodo(todo)}
+                onChecklistClick={onChecklistClick ? () => onChecklistClick(todo) : undefined}
                 globalExpandedLabels={globalExpandedLabels}
                 setGlobalExpandedLabels={setGlobalExpandedLabels}
               />

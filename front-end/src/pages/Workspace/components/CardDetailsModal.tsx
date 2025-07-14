@@ -56,6 +56,7 @@ interface CardDetailsModalProps {
   members: Member[]
   listName: string
   onLabelsUpdated: () => void
+  openChecklistByDefault?: boolean
 }
 
 const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
@@ -66,13 +67,14 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   labels,
   members,
   listName,
-  onLabelsUpdated
+  onLabelsUpdated,
+  openChecklistByDefault = false
 }) => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [showLabelMenu, setShowLabelMenu] = useState(false)
   const [showMemberMenu, setShowMemberMenu] = useState(false)
-  const [checklistExpanded, setChecklistExpanded] = useState(true)
+  const [checklistExpanded, setChecklistExpanded] = useState(false)
   const [currentTodoLabels, setCurrentTodoLabels] = useState<Label[]>([])
   const [currentChecklistItems, setCurrentChecklistItems] = useState<ChecklistItem[]>([])
   const [editingLabel, setEditingLabel] = useState<Label | null>(null)
@@ -85,8 +87,9 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       setDescription(todo.description || '')
       setCurrentTodoLabels(todo.labels || [])
       setCurrentChecklistItems(todo.checklist_items || [])
+      setChecklistExpanded(openChecklistByDefault)
     }
-  }, [todo, isOpen])
+  }, [todo, isOpen, openChecklistByDefault])
 
   // Sync checklist items when todo changes
   useEffect(() => {

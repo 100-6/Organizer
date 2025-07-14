@@ -87,6 +87,7 @@ const Workspace = () => {
   const [showCreateListModal, setShowCreateListModal] = useState(false)
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false)
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
+  const [openChecklistByDefault, setOpenChecklistByDefault] = useState(false)
   
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [isCreatingList, setIsCreatingList] = useState(false)
@@ -352,7 +353,7 @@ const Workspace = () => {
     }
   }
 
-  const handleOpenCardDetails = async (todo: Todo) => {
+  const handleOpenCardDetails = async (todo: Todo, openChecklist: boolean = false) => {
     try {
       // Fetch complete todo details including checklist items
       const token = localStorage.getItem('accessToken')
@@ -376,12 +377,18 @@ const Workspace = () => {
       // Fallback to basic todo data
       setSelectedTodo({ ...todo, workspace_id: todo.workspace_id ?? lists.find(l => l.id === todo.list_id)?.workspace_id })
     }
+    setOpenChecklistByDefault(openChecklist)
     setShowCardDetailsModal(true)
+  }
+
+  const handleOpenCardDetailsWithChecklist = async (todo: Todo) => {
+    await handleOpenCardDetails(todo, true)
   }
 
   const handleCloseCardDetails = () => {
     setSelectedTodo(null)
     setShowCardDetailsModal(false)
+    setOpenChecklistByDefault(false)
   }
 
   const refreshSelectedTodo = async () => {
@@ -496,6 +503,7 @@ const Workspace = () => {
                     labels={labels}
                     onCreateTodo={(title) => handleCreateTodo(list.id, title)}
                     onEditTodo={handleOpenCardDetails}
+                    onChecklistClick={handleOpenCardDetailsWithChecklist}
                     onDeleteTodo={handleDeleteTodo}
                     onDeleteList={() => handleDeleteList(list.id)}
                     onMoveTodo={handleMoveTodo}
@@ -569,6 +577,7 @@ const Workspace = () => {
             members={workspace.members}
             listName={selectedTodo ? getListName(selectedTodo.list_id) : ''}
             onLabelsUpdated={handleLabelsUpdated}
+            openChecklistByDefault={openChecklistByDefault}
           />
         </div>
       </DndProvider>

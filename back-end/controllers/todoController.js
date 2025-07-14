@@ -138,7 +138,7 @@ const getListTodos = async (req, res) => {
 
         const todos = result.rows;
 
-        // Pour chaque todo, on va chercher ses labels associés
+        // Pour chaque todo, on va chercher ses labels associés et les assignations multiples
         for (const todo of todos) {
             const labelsResult = await pool.query(`
                 SELECT l.id, l.name, l.color
@@ -148,6 +148,16 @@ const getListTodos = async (req, res) => {
                 ORDER BY tl.assigned_order ASC, tl.assigned_at ASC
             `, [todo.id]);
             todo.labels = labelsResult.rows;
+
+            // Récupérer les assignations multiples
+            const assignmentsResult = await pool.query(`
+                SELECT u.id, u.username, u.email, 'member' as role, ta.assigned_at as joined_at
+                FROM users u
+                JOIN todo_assignments ta ON u.id = ta.user_id
+                WHERE ta.todo_id = $1
+                ORDER BY ta.assigned_at ASC
+            `, [todo.id]);
+            todo.assigned_members = assignmentsResult.rows;
         }
 
         res.json({

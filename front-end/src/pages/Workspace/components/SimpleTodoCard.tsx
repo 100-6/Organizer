@@ -38,13 +38,14 @@ interface Label {
 interface SimpleTodoCardProps {
   todo: Todo
   onClick: () => void
+  onChecklistClick?: () => void
   index: number
   moveTodo: (dragIndex: number, hoverIndex: number) => void
   globalExpandedLabels: boolean
   setGlobalExpandedLabels: (expanded: boolean) => void
 }
 
-const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, index, moveTodo, globalExpandedLabels, setGlobalExpandedLabels }) => {
+const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onChecklistClick, index, moveTodo, globalExpandedLabels, setGlobalExpandedLabels }) => {
   const ref = useRef<HTMLDivElement>(null)
 
   const [{ handlerId, isOver }, drop] = useDrop<
@@ -241,72 +242,83 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, index, m
 
           <h4 className="card-title">{todo.title}</h4>
 
-          {(hasDueDate || hasChecklist || hasDescription) && (
-            <div className="card-badges">
-              {hasDueDate && (
-                <div className={`card-badge ${isOverdue(todo.due_date!, todo.due_time) ? 'card-badge--overdue' : ''}`}>
-                  <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  <span>{formatDueDate(todo.due_date!, todo.due_time)}</span>
+          {(hasDueDate || hasChecklist || hasDescription || hasAssignedMembers || hasAssignedUser) && (
+            <div className="card-bottom-section">
+              {(hasDueDate || hasChecklist || hasDescription) && (
+                <div className="card-badges">
+                  {hasDueDate && (
+                    <div className={`card-badge ${isOverdue(todo.due_date!, todo.due_time) ? 'card-badge--overdue' : ''}`}>
+                      <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      <span>{formatDueDate(todo.due_date!, todo.due_time)}</span>
+                    </div>
+                  )}
+
+                  {hasDescription && (
+                    <div className="card-badge">
+                      <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2"/>
+                        <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2"/>
+                        <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2"/>
+                        <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                    </div>
+                  )}
+
+                  {hasChecklist && (
+                    <div 
+                      className="card-badge card-badge--checklist" 
+                      style={{ backgroundColor: getChecklistColor() }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onChecklistClick?.()
+                      }}
+                    >
+                      <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                      <span>{todo.completed_checklist_count}/{todo.checklist_count}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {hasDescription && (
-                <div className="card-badge">
-                  <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2"/>
-                    <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2"/>
-                    <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2"/>
-                    <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2"/>
-                  </svg>
-                </div>
-              )}
-
-              {hasChecklist && (
-                <div className="card-badge card-badge--checklist" style={{ backgroundColor: getChecklistColor() }}>
-                  <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
-                  </svg>
-                  <span>{todo.completed_checklist_count}/{todo.checklist_count}</span>
+              {/* Section des membres assignés en bas */}
+              {(hasAssignedMembers || hasAssignedUser) && (
+                <div className="card-assigned-members">
+                  {hasAssignedMembers ? (
+                    // Affichage des assignations multiples
+                    <>
+                      {todo.assigned_members!.slice(0, 4).map((member, index) => (
+                        <div 
+                          key={member.id} 
+                          className="card-member-avatar" 
+                          title={member.username}
+                          style={{ backgroundColor: getMemberAvatarColor(member.id) }}
+                        >
+                          {member.username.charAt(0).toUpperCase()}
+                        </div>
+                      ))}
+                      {todo.assigned_members!.length > 4 && (
+                        <div className="card-member-avatar card-member-overflow" title={`+${todo.assigned_members!.length - 4} others`}>
+                          +{todo.assigned_members!.length - 4}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    // Affichage de l'assignation unique (legacy)
+                    <div className="card-member-avatar" title={todo.assigned_username!}>
+                      {todo.assigned_username!.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
         </div>
-
-        {/* Section des membres assignés à droite */}
-        {(hasAssignedMembers || hasAssignedUser) && (
-          <div className="card-assigned-members">
-            {hasAssignedMembers ? (
-              // Affichage des assignations multiples
-              <>
-                {todo.assigned_members!.slice(0, 2).map((member, index) => (
-                  <div 
-                    key={member.id} 
-                    className="card-member-avatar" 
-                    title={member.username}
-                    style={{ backgroundColor: getMemberAvatarColor(member.id) }}
-                  >
-                    {member.username.charAt(0).toUpperCase()}
-                  </div>
-                ))}
-                {todo.assigned_members!.length > 2 && (
-                  <div className="card-member-avatar card-member-overflow" title={`+${todo.assigned_members!.length - 2} others`}>
-                    +{todo.assigned_members!.length - 2}
-                  </div>
-                )}
-              </>
-            ) : (
-              // Affichage de l'assignation unique (legacy)
-              <div className="card-member-avatar" title={todo.assigned_username!}>
-                {todo.assigned_username!.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
