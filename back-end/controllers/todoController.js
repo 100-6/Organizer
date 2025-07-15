@@ -5,6 +5,7 @@ const createTodo = async (req, res) => {
     try {
         const { title, description, listId, assignedTo, dueDate, dueTime, position = 0, labels } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
         await client.query('BEGIN');
 
         const listResult = await client.query(
@@ -76,6 +77,12 @@ const createTodo = async (req, res) => {
         todo.labels = labelsResult.rows;
 
         await client.query('COMMIT');
+        
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(listResult.rows[0].workspace_id, 'todo:created', todo);
+        }
+        
         res.status(201).json({
             message: 'Todo créé avec succès',
             todo
@@ -259,6 +266,7 @@ const updateTodo = async (req, res) => {
         const { id } = req.params;
         const { title, description, assignedTo, dueDate, dueTime, position } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
         
         console.log('=== Todo Update Backend Debug ===');
         console.log('Request body:', req.body);
@@ -376,9 +384,16 @@ const updateTodo = async (req, res) => {
             WHERE t.id = $1
         `, [id]);
 
+        const updatedTodo = updatedTodoResult.rows[0];
+        
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(todo.workspace_id, 'todo:updated', updatedTodo);
+        }
+
         res.json({
             message: 'Todo mis à jour avec succès',
-            todo: updatedTodoResult.rows[0]
+            todo: updatedTodo
         });
 
     } catch (error) {
@@ -393,6 +408,7 @@ const deleteTodo = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id)) {
             return res.status(400).json({
@@ -401,7 +417,7 @@ const deleteTodo = async (req, res) => {
         }
 
         const todoResult = await pool.query(`
-            SELECT l.workspace_id
+            SELECT t.*, l.workspace_id
             FROM todos t
             JOIN lists l ON t.list_id = l.id
             WHERE t.id = $1
@@ -413,9 +429,11 @@ const deleteTodo = async (req, res) => {
             });
         }
 
+        const todo = todoResult.rows[0];
+
         const memberCheck = await pool.query(
             'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
-            [todoResult.rows[0].workspace_id, userId]
+            [todo.workspace_id, userId]
         );
 
         if (memberCheck.rows.length === 0) {
@@ -425,6 +443,14 @@ const deleteTodo = async (req, res) => {
         }
 
         await pool.query('DELETE FROM todos WHERE id = $1', [id]);
+
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(todo.workspace_id, 'todo:deleted', {
+                id: parseInt(id),
+                list_id: todo.list_id
+            });
+        }
 
         res.json({
             message: 'Todo supprimé avec succès'
@@ -443,6 +469,7 @@ const moveTodo = async (req, res) => {
         const { id } = req.params;
         const { listId, position } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id) || isNaN(listId)) {
             return res.status(400).json({
@@ -511,15 +538,51 @@ const moveTodo = async (req, res) => {
         const movedTodoResult = await pool.query(`
             SELECT 
                 t.*,
-                u.username as assigned_username
+                u.username as assigned_username,
+                COUNT(ci.id) as checklist_count,
+                COUNT(CASE WHEN ci.is_completed = true THEN 1 END) as completed_checklist_count
             FROM todos t
             LEFT JOIN users u ON t.assigned_to = u.id
+            LEFT JOIN checklist_items ci ON t.id = ci.todo_id
             WHERE t.id = $1
+            GROUP BY t.id, u.username
         `, [id]);
+
+        const movedTodo = movedTodoResult.rows[0];
+        
+        // Récupérer les labels associés
+        const labelsResult = await pool.query(`
+            SELECT l.id, l.name, l.color
+            FROM labels l
+            JOIN todo_labels tl ON l.id = tl.label_id
+            WHERE tl.todo_id = $1
+            ORDER BY tl.assigned_order ASC, tl.assigned_at ASC
+        `, [id]);
+        movedTodo.labels = labelsResult.rows;
+
+        // Récupérer les assignations multiples
+        const assignmentsResult = await pool.query(`
+            SELECT u.id, u.username, u.email, 'member' as role, ta.assigned_at as joined_at
+            FROM users u
+            JOIN todo_assignments ta ON u.id = ta.user_id
+            WHERE ta.todo_id = $1
+            ORDER BY ta.assigned_at ASC
+        `, [id]);
+        movedTodo.assigned_members = assignmentsResult.rows;
+        
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(todoResult.rows[0].current_workspace_id, 'todo:moved', {
+                id: parseInt(id),
+                fromListId: todoResult.rows[0].list_id,
+                toListId: parseInt(listId),
+                todo: movedTodo
+            });
+        }
 
         res.json({
             message: 'Todo déplacé avec succès',
-            todo: movedTodoResult.rows[0]
+            todo: movedTodo
         });
 
     } catch (error) {
@@ -616,6 +679,7 @@ const addLabelToTodo = async (req, res) => {
       const { todoId } = req.params
       const { labelId } = req.body
       const userId = req.user.id
+      const io = req.app.get('io')
   
       if (isNaN(todoId) || isNaN(labelId)) {
         return res.status(400).json({
@@ -685,6 +749,11 @@ const addLabelToTodo = async (req, res) => {
       )
   
       await client.query('COMMIT')
+      
+      // Emit socket event
+      if (io) {
+        io.emitToWorkspace(todo.workspace_id, 'todo:label-added', { todoId, labelId });
+      }
   
       res.json({
         message: 'Label associé à la todo avec succès'
@@ -706,6 +775,7 @@ const addLabelToTodo = async (req, res) => {
     try {
       const { todoId, labelId } = req.params
       const userId = req.user.id
+      const io = req.app.get('io')
   
       if (isNaN(todoId) || isNaN(labelId)) {
         return res.status(400).json({
@@ -757,6 +827,9 @@ const addLabelToTodo = async (req, res) => {
   
       await client.query('COMMIT')
   
+      // Émettre l'événement Socket.io
+      io.emitToWorkspace(todo.workspace_id, 'todo:label-removed', { todoId: parseInt(todoId), labelId: parseInt(labelId) });
+  
       res.json({
         message: 'Label retiré de la todo avec succès'
       })
@@ -781,6 +854,7 @@ const createChecklistItem = async (req, res) => {
         const { todoId } = req.params;
         const { title, position = 0 } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(todoId)) {
             return res.status(400).json({ error: 'ID todo invalide' });
@@ -818,9 +892,31 @@ const createChecklistItem = async (req, res) => {
             [title.trim(), todoId, position]
         );
 
+        const checklistItem = result.rows[0];
+        
+        // Récupérer les compteurs mis à jour
+        const countResult = await pool.query(`
+            SELECT 
+                COUNT(*) as checklist_count,
+                COUNT(CASE WHEN is_completed = true THEN 1 END) as completed_checklist_count
+            FROM checklist_items WHERE todo_id = $1
+        `, [todoId]);
+        
+        const counts = countResult.rows[0];
+        
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(todo.workspace_id, 'todo:checklist-item-created', {
+                todoId: parseInt(todoId),
+                checklistItem,
+                checklist_count: parseInt(counts.checklist_count),
+                completed_checklist_count: parseInt(counts.completed_checklist_count)
+            });
+        }
+
         res.status(201).json({
             message: 'Élément de checklist créé avec succès',
-            checklistItem: result.rows[0]
+            checklistItem
         });
     } catch (error) {
         console.error('Erreur lors de la création de l\'élément de checklist:', error);
@@ -833,6 +929,7 @@ const updateChecklistItem = async (req, res) => {
         const { todoId, itemId } = req.params;
         const { title, is_completed } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(todoId) || isNaN(itemId)) {
             return res.status(400).json({ error: 'IDs invalides' });
@@ -898,6 +995,24 @@ const updateChecklistItem = async (req, res) => {
             values
         );
 
+        // Récupérer les compteurs mis à jour
+        const countResult = await pool.query(`
+            SELECT 
+                COUNT(*) as checklist_count,
+                COUNT(CASE WHEN is_completed = true THEN 1 END) as completed_checklist_count
+            FROM checklist_items WHERE todo_id = $1
+        `, [todoId]);
+        
+        const counts = countResult.rows[0];
+        
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(todo.workspace_id, 'todo:checklist-item-updated', {
+            todoId: parseInt(todoId),
+            checklistItem: result.rows[0],
+            checklist_count: parseInt(counts.checklist_count),
+            completed_checklist_count: parseInt(counts.completed_checklist_count)
+        });
+
         res.json({
             message: 'Élément de checklist mis à jour avec succès',
             checklistItem: result.rows[0]
@@ -912,6 +1027,7 @@ const deleteChecklistItem = async (req, res) => {
     try {
         const { todoId, itemId } = req.params;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(todoId) || isNaN(itemId)) {
             return res.status(400).json({ error: 'IDs invalides' });
@@ -948,6 +1064,24 @@ const deleteChecklistItem = async (req, res) => {
         if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Élément de checklist introuvable' });
         }
+
+        // Récupérer les compteurs mis à jour
+        const countResult = await pool.query(`
+            SELECT 
+                COUNT(*) as checklist_count,
+                COUNT(CASE WHEN is_completed = true THEN 1 END) as completed_checklist_count
+            FROM checklist_items WHERE todo_id = $1
+        `, [todoId]);
+        
+        const counts = countResult.rows[0];
+        
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(todo.workspace_id, 'todo:checklist-item-deleted', {
+            todoId: parseInt(todoId),
+            itemId: parseInt(itemId),
+            checklist_count: parseInt(counts.checklist_count),
+            completed_checklist_count: parseInt(counts.completed_checklist_count)
+        });
 
         res.json({ message: 'Élément de checklist supprimé avec succès' });
     } catch (error) {
@@ -1011,6 +1145,7 @@ const addTodoAssignment = async (req, res) => {
         const { todoId } = req.params;
         const { userId: assignedUserId } = req.body;
         const requestUserId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(todoId) || isNaN(assignedUserId)) {
             return res.status(400).json({ error: 'IDs invalides' });
@@ -1056,6 +1191,18 @@ const addTodoAssignment = async (req, res) => {
             [todoId, assignedUserId]
         );
 
+        // Récupérer les infos de l'utilisateur assigné
+        const assignedUser = await pool.query(
+            'SELECT id, username, email FROM users WHERE id = $1',
+            [assignedUserId]
+        );
+
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(todo.workspace_id, 'todo:member-assigned', {
+            todoId: parseInt(todoId),
+            member: assignedUser.rows[0]
+        });
+
         res.json({ message: 'Assignation ajoutée avec succès' });
     } catch (error) {
         console.error('Erreur lors de l\'ajout d\'assignation:', error);
@@ -1067,6 +1214,7 @@ const removeTodoAssignment = async (req, res) => {
     try {
         const { todoId, userId: assignedUserId } = req.params;
         const requestUserId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(todoId) || isNaN(assignedUserId)) {
             return res.status(400).json({ error: 'IDs invalides' });
@@ -1103,6 +1251,12 @@ const removeTodoAssignment = async (req, res) => {
         if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Assignation introuvable' });
         }
+
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(todo.workspace_id, 'todo:member-unassigned', {
+            todoId: parseInt(todoId),
+            memberId: parseInt(assignedUserId)
+        });
 
         res.json({ message: 'Assignation supprimée avec succès' });
     } catch (error) {

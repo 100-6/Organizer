@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSocket } from '../../contexts/SocketContext'
 import { 
   LoadingSpinner, 
   AlertMessage, 
@@ -15,6 +16,7 @@ import WorkspaceHeader from './components/WorkspaceHeader'
 import ListColumn from './components/ListColumn'
 import SimpleTodoCard from './components/SimpleTodoCard'
 import CardDetailsModal from './components/CardDetailsModal'
+import OnlineUsers from '../../components/OnlineUsers'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import './Workspace.css'
@@ -75,6 +77,7 @@ interface Label {
 const Workspace = () => {
   const { id } = useParams<{ id: string }>()
   const { user, logout } = useAuth()
+  const { socket, joinWorkspace, leaveWorkspace, isConnected } = useSocket()
   const navigate = useNavigate()
   
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
@@ -98,6 +101,476 @@ const Workspace = () => {
       fetchWorkspaceData()
     }
   }, [id])
+
+  // Socket.io event handlers
+  useEffect(() => {
+    if (!socket || !id || !isConnected) return
+
+    const workspaceId = parseInt(id)
+    
+    // Join workspace room
+    console.log('Joining workspace:', workspaceId);
+    joinWorkspace(workspaceId)
+
+    // Setup event listeners for real-time updates
+    console.log('Setting up Socket.io event listeners');
+    const handleTodoCreated = (todo: Todo) => {
+      console.log('Real-time todo created:', todo);
+      setTodos(prev => ({
+        ...prev,
+        [todo.list_id]: [...(prev[todo.list_id] || []), todo]
+      }))
+    }
+
+    const handleTodoUpdated = (todo: Todo) => {
+      setTodos(prev => ({
+        ...prev,
+        [todo.list_id]: (prev[todo.list_id] || []).map(t => 
+          t.id === todo.id ? todo : t
+        )
+      }))
+      
+      // Update selectedTodo if it's the same todo and modal is open
+      if (selectedTodo && selectedTodo.id === todo.id) {
+        setSelectedTodo(todo)
+      }
+    }
+
+    const handleTodoDeleted = (data: { id: number; list_id: number }) => {
+      setTodos(prev => ({
+        ...prev,
+        [data.list_id]: (prev[data.list_id] || []).filter(t => t.id !== data.id)
+      }))
+    }
+
+    const handleTodoMoved = (data: { id: number; fromListId: number; toListId: number; todo: Todo }) => {
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        
+        // Remove from old list
+        if (newTodos[data.fromListId]) {
+          newTodos[data.fromListId] = newTodos[data.fromListId].filter(t => t.id !== data.id)
+        }
+        
+        // Add to new list
+        if (!newTodos[data.toListId]) {
+          newTodos[data.toListId] = []
+        }
+        newTodos[data.toListId] = [...newTodos[data.toListId], data.todo]
+        
+        return newTodos
+      })
+    }
+
+    const handleListCreated = (list: List) => {
+      setLists(prev => [...prev, list])
+      setTodos(prev => ({ ...prev, [list.id]: [] }))
+    }
+
+    const handleListUpdated = (list: List) => {
+      setLists(prev => prev.map(l => l.id === list.id ? list : l))
+    }
+
+    const handleListDeleted = (listId: number) => {
+      setLists(prev => prev.filter(l => l.id !== listId))
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        delete newTodos[listId]
+        return newTodos
+      })
+    }
+
+    const handleLabelCreated = (label: Label) => {
+      console.log('Real-time label created:', label);
+      console.log('Current labels before:', labels.length);
+      setLabels(prev => {
+        const newLabels = [...prev, label];
+        console.log('New labels after:', newLabels.length);
+        return newLabels;
+      });
+    }
+
+    const handleLabelUpdated = (label: Label) => {
+      console.log('Real-time label updated:', label);
+      setLabels(prev => prev.map(l => l.id === label.id ? label : l))
+      
+      // Forcer le re-render des todos qui utilisent ce label
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedSelectedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.labels && todo.labels.some(l => l.id === label.id)) {
+              const updatedTodo = {
+                ...todo,
+                labels: todo.labels.map(l => l.id === label.id ? label : l)
+              }
+              
+              // Check if this is the selected todo
+              if (selectedTodo && selectedTodo.id === todo.id) {
+                updatedSelectedTodo = updatedTodo
+              }
+              
+              return updatedTodo
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it was affected
+        if (updatedSelectedTodo) {
+          setSelectedTodo(updatedSelectedTodo)
+        }
+        
+        return newTodos
+      })
+    }
+
+    const handleLabelDeleted = (labelId: number) => {
+      console.log('Real-time label deleted:', labelId);
+      setLabels(prev => prev.filter(l => l.id !== labelId))
+      
+      // Retirer le label supprimé de tous les todos
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedSelectedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.labels && todo.labels.some(l => l.id === labelId)) {
+              const updatedTodo = {
+                ...todo,
+                labels: todo.labels.filter(l => l.id !== labelId)
+              }
+              
+              // Check if this is the selected todo
+              if (selectedTodo && selectedTodo.id === todo.id) {
+                updatedSelectedTodo = updatedTodo
+              }
+              
+              return updatedTodo
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it was affected
+        if (updatedSelectedTodo) {
+          setSelectedTodo(updatedSelectedTodo)
+        }
+        
+        return newTodos
+      })
+    }
+
+    const handleTodoLabelAdded = (data: { todoId: number | string; labelId: number | string }) => {
+      console.log('Real-time label added to todo:', data);
+      const todoId = parseInt(data.todoId.toString());
+      const labelId = parseInt(data.labelId.toString());
+      
+      // Utiliser une fonction qui accède aux labels actuels
+      setLabels(currentLabels => {
+        const label = currentLabels.find(l => l.id === labelId);
+        if (!label) {
+          console.log('Label not found:', labelId, 'Available labels:', currentLabels.map(l => l.id));
+          return currentLabels;
+        }
+        
+        // Mettre à jour les todos avec le label trouvé
+        setTodos(prev => {
+          const newTodos = { ...prev }
+          let updatedTodo = null;
+          
+          Object.keys(newTodos).forEach(listId => {
+            newTodos[listId] = newTodos[listId].map(todo => {
+              if (todo.id === todoId) {
+                console.log('Found todo to update:', todo.id, 'Current labels:', todo.labels?.map(l => l.id));
+                const todoLabels = todo.labels || [];
+                if (!todoLabels.some(l => l.id === labelId)) {
+                  console.log('Adding label to todo');
+                  updatedTodo = {
+                    ...todo,
+                    labels: [...todoLabels, label]
+                  }
+                  return updatedTodo
+                } else {
+                  console.log('Label already exists on todo');
+                }
+              }
+              return todo
+            })
+          })
+          
+          // Update selectedTodo if it's the same todo
+          if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
+            setSelectedTodo(updatedTodo)
+          }
+          
+          return newTodos
+        })
+        
+        return currentLabels;
+      })
+    }
+
+    const handleTodoLabelRemoved = (data: { todoId: number | string; labelId: number | string }) => {
+      console.log('Real-time label removed from todo:', data);
+      const todoId = parseInt(data.todoId.toString());
+      const labelId = parseInt(data.labelId.toString());
+      
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.id === todoId && todo.labels) {
+              updatedTodo = {
+                ...todo,
+                labels: todo.labels.filter(l => l.id !== labelId)
+              }
+              return updatedTodo
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it's the same todo
+        if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
+          setSelectedTodo(updatedTodo)
+        }
+        
+        return newTodos
+      })
+    }
+
+    const handleTodoMemberAssigned = (data: { todoId: number | string; member: any }) => {
+      console.log('Real-time member assigned to todo:', data);
+      const todoId = parseInt(data.todoId.toString());
+      
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.id === todoId) {
+              const currentMembers = todo.assigned_members || [];
+              if (!currentMembers.some(m => m.id === data.member.id)) {
+                updatedTodo = {
+                  ...todo,
+                  assigned_members: [...currentMembers, data.member]
+                }
+                return updatedTodo
+              }
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it's the same todo
+        if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
+          setSelectedTodo(updatedTodo)
+        }
+        
+        return newTodos
+      })
+    }
+
+    const handleTodoMemberUnassigned = (data: { todoId: number | string; memberId: number | string }) => {
+      console.log('Real-time member unassigned from todo:', data);
+      const todoId = parseInt(data.todoId.toString());
+      const memberId = parseInt(data.memberId.toString());
+      
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.id === todoId && todo.assigned_members) {
+              updatedTodo = {
+                ...todo,
+                assigned_members: todo.assigned_members.filter(m => m.id !== memberId)
+              }
+              return updatedTodo
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it's the same todo
+        if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
+          setSelectedTodo(updatedTodo)
+        }
+        
+        return newTodos
+      })
+    }
+
+    const handleChecklistItemCreated = (data: { todoId: number | string; checklistItem: any; checklist_count: number; completed_checklist_count: number }) => {
+      console.log('Real-time checklist item created:', data);
+      const todoId = parseInt(data.todoId.toString());
+      
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.id === todoId) {
+              updatedTodo = {
+                ...todo,
+                checklist_count: data.checklist_count,
+                completed_checklist_count: data.completed_checklist_count,
+                checklist_items: todo.checklist_items ? [...todo.checklist_items, data.checklistItem] : [data.checklistItem]
+              }
+              return updatedTodo
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it's the same todo - preserve all existing data
+        if (selectedTodo && selectedTodo.id === todoId) {
+          setSelectedTodo(prev => ({
+            ...prev,
+            checklist_count: data.checklist_count,
+            completed_checklist_count: data.completed_checklist_count,
+            checklist_items: prev.checklist_items ? [...prev.checklist_items, data.checklistItem] : [data.checklistItem]
+          }))
+        }
+        
+        return newTodos
+      })
+    }
+
+    const handleChecklistItemUpdated = (data: { todoId: number | string; checklistItem: any; checklist_count: number; completed_checklist_count: number }) => {
+      console.log('Real-time checklist item updated:', data);
+      const todoId = parseInt(data.todoId.toString());
+      
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.id === todoId) {
+              updatedTodo = {
+                ...todo,
+                checklist_count: data.checklist_count,
+                completed_checklist_count: data.completed_checklist_count,
+                checklist_items: todo.checklist_items ? 
+                  todo.checklist_items.map(item => 
+                    item.id === data.checklistItem.id ? data.checklistItem : item
+                  ) : [data.checklistItem]
+              }
+              return updatedTodo
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it's the same todo - preserve all existing data
+        if (selectedTodo && selectedTodo.id === todoId) {
+          setSelectedTodo(prev => ({
+            ...prev,
+            checklist_count: data.checklist_count,
+            completed_checklist_count: data.completed_checklist_count,
+            checklist_items: prev.checklist_items ? 
+              prev.checklist_items.map(item => 
+                item.id === data.checklistItem.id ? data.checklistItem : item
+              ) : [data.checklistItem]
+          }))
+        }
+        
+        return newTodos
+      })
+    }
+
+    const handleChecklistItemDeleted = (data: { todoId: number | string; itemId: number | string; checklist_count: number; completed_checklist_count: number }) => {
+      console.log('Real-time checklist item deleted:', data);
+      const todoId = parseInt(data.todoId.toString());
+      const itemId = parseInt(data.itemId.toString());
+      
+      setTodos(prev => {
+        const newTodos = { ...prev }
+        let updatedTodo = null;
+        
+        Object.keys(newTodos).forEach(listId => {
+          newTodos[listId] = newTodos[listId].map(todo => {
+            if (todo.id === todoId) {
+              updatedTodo = {
+                ...todo,
+                checklist_count: data.checklist_count,
+                completed_checklist_count: data.completed_checklist_count,
+                checklist_items: todo.checklist_items ? 
+                  todo.checklist_items.filter(item => item.id !== itemId) : []
+              }
+              return updatedTodo
+            }
+            return todo
+          })
+        })
+        
+        // Update selectedTodo if it's the same todo - preserve all existing data
+        if (selectedTodo && selectedTodo.id === todoId) {
+          setSelectedTodo(prev => ({
+            ...prev,
+            checklist_count: data.checklist_count,
+            completed_checklist_count: data.completed_checklist_count,
+            checklist_items: prev.checklist_items ? 
+              prev.checklist_items.filter(item => item.id !== itemId) : []
+          }))
+        }
+        
+        return newTodos
+      })
+    }
+
+    // Register event listeners
+    socket.on('todo:created', handleTodoCreated)
+    socket.on('todo:updated', handleTodoUpdated)
+    socket.on('todo:deleted', handleTodoDeleted)
+    socket.on('todo:moved', handleTodoMoved)
+    socket.on('list:created', handleListCreated)
+    socket.on('list:updated', handleListUpdated)
+    socket.on('list:deleted', handleListDeleted)
+    socket.on('label:created', handleLabelCreated)
+    socket.on('label:updated', handleLabelUpdated)
+    socket.on('label:deleted', handleLabelDeleted)
+    socket.on('todo:label-added', handleTodoLabelAdded)
+    socket.on('todo:label-removed', handleTodoLabelRemoved)
+    socket.on('todo:member-assigned', handleTodoMemberAssigned)
+    socket.on('todo:member-unassigned', handleTodoMemberUnassigned)
+    socket.on('todo:checklist-item-created', handleChecklistItemCreated)
+    socket.on('todo:checklist-item-updated', handleChecklistItemUpdated)
+    socket.on('todo:checklist-item-deleted', handleChecklistItemDeleted)
+
+    // Cleanup
+    return () => {
+      socket.off('todo:created', handleTodoCreated)
+      socket.off('todo:updated', handleTodoUpdated)
+      socket.off('todo:deleted', handleTodoDeleted)
+      socket.off('todo:moved', handleTodoMoved)
+      socket.off('list:created', handleListCreated)
+      socket.off('list:updated', handleListUpdated)
+      socket.off('list:deleted', handleListDeleted)
+      socket.off('label:created', handleLabelCreated)
+      socket.off('label:updated', handleLabelUpdated)
+      socket.off('label:deleted', handleLabelDeleted)
+      socket.off('todo:label-added', handleTodoLabelAdded)
+      socket.off('todo:label-removed', handleTodoLabelRemoved)
+      socket.off('todo:member-assigned', handleTodoMemberAssigned)
+      socket.off('todo:member-unassigned', handleTodoMemberUnassigned)
+      socket.off('todo:checklist-item-created', handleChecklistItemCreated)
+      socket.off('todo:checklist-item-updated', handleChecklistItemUpdated)
+      socket.off('todo:checklist-item-deleted', handleChecklistItemDeleted)
+      
+      leaveWorkspace(workspaceId)
+    }
+  }, [socket, id, isConnected])
 
   const fetchWorkspaceData = async () => {
     try {
@@ -483,6 +956,8 @@ const Workspace = () => {
             onSettings={handleSettings}
             onManageLabels={() => {}}
           />
+
+          <OnlineUsers />
 
           <main className="workspace-main">
             {error && (

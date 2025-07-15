@@ -270,6 +270,7 @@ const addMember = async (req, res) => {
         const { id } = req.params;
         const { userId: memberUserId, role = 'member' } = req.body;
         const currentUserId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id) || isNaN(memberUserId)) {
             return res.status(400).json({
@@ -333,6 +334,9 @@ const addMember = async (req, res) => {
             WHERE wm.workspace_id = $1 AND wm.user_id = $2
         `, [id, memberUserId]);
 
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(parseInt(id), 'member:added', newMember.rows[0]);
+
         res.status(201).json({
             message: 'Membre ajouté avec succès',
             member: newMember.rows[0]
@@ -350,6 +354,7 @@ const removeMember = async (req, res) => {
     try {
         const { id, memberId } = req.params;
         const currentUserId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id) || isNaN(memberId)) {
             return res.status(400).json({
@@ -389,6 +394,9 @@ const removeMember = async (req, res) => {
             'DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
             [id, memberId]
         );
+
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(parseInt(id), 'member:removed', parseInt(memberId));
 
         res.json({
             message: 'Membre retiré avec succès'
@@ -453,6 +461,7 @@ const updateMemberRole = async (req, res) => {
         const { workspaceId, memberId } = req.params;
         const { role } = req.body;
         const currentUserId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(workspaceId) || isNaN(memberId)) {
             return res.status(400).json({

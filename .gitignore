@@ -4,3 +4,5 @@ package-lock.json
 .dockerignore
 .vscode
 CLAUDE.md
+test-socket.html
+.claude/

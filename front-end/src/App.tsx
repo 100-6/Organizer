@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { SocketProvider } from './contexts/SocketContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home/Home'
 import Login from './pages/Login/Login'
@@ -11,8 +12,9 @@ import './App.css'
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
+        <SocketProvider>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -42,8 +44,9 @@ function App() {
             } 
           />
         </Routes>
-      </Router>
-    </AuthProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </Router>
   )
 }
 

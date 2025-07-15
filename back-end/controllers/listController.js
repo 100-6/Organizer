@@ -4,6 +4,7 @@ const createList = async (req, res) => {
     try {
         const { name, workspaceId, position = 0 } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         const memberCheck = await pool.query(
             'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
@@ -21,9 +22,16 @@ const createList = async (req, res) => {
             [name, workspaceId, position]
         );
 
+        const newList = result.rows[0];
+        
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(workspaceId, 'list:created', newList);
+        }
+
         res.status(201).json({
             message: 'Liste créée avec succès',
-            list: result.rows[0]
+            list: newList
         });
 
     } catch (error) {
@@ -151,6 +159,7 @@ const updateList = async (req, res) => {
         const { id } = req.params;
         const { name, position } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id)) {
             return res.status(400).json({
@@ -209,9 +218,16 @@ const updateList = async (req, res) => {
             values
         );
 
+        const updatedList = result.rows[0];
+        
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(listResult.rows[0].workspace_id, 'list:updated', updatedList);
+        }
+
         res.json({
             message: 'Liste mise à jour avec succès',
-            list: result.rows[0]
+            list: updatedList
         });
 
     } catch (error) {
@@ -226,6 +242,7 @@ const deleteList = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id)) {
             return res.status(400).json({
@@ -256,6 +273,11 @@ const deleteList = async (req, res) => {
         }
 
         await pool.query('DELETE FROM lists WHERE id = $1', [id]);
+
+        // Emit socket event
+        if (io) {
+            io.emitToWorkspace(listResult.rows[0].workspace_id, 'list:deleted', parseInt(id));
+        }
 
         res.json({
             message: 'Liste supprimée avec succès'

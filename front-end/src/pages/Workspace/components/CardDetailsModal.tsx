@@ -75,6 +75,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   const [showLabelMenu, setShowLabelMenu] = useState(false)
   const [showMemberMenu, setShowMemberMenu] = useState(false)
   const [checklistExpanded, setChecklistExpanded] = useState(false)
+  const [checklistInitialized, setChecklistInitialized] = useState(false)
   const [currentTodoLabels, setCurrentTodoLabels] = useState<Label[]>([])
   const [currentChecklistItems, setCurrentChecklistItems] = useState<ChecklistItem[]>([])
   const [editingLabel, setEditingLabel] = useState<Label | null>(null)
@@ -87,13 +88,22 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       setDescription(todo.description || '')
       setCurrentTodoLabels(todo.labels || [])
       setCurrentChecklistItems(todo.checklist_items || [])
-      setChecklistExpanded(openChecklistByDefault)
+      
+      // Ne réinitialiser l'état de la checklist qu'au premier chargement
+      if (!checklistInitialized) {
+        setChecklistExpanded(openChecklistByDefault)
+        setChecklistInitialized(true)
+      }
+    } else if (!isOpen) {
+      // Réinitialiser l'état quand le modal se ferme
+      setChecklistInitialized(false)
     }
-  }, [todo, isOpen, openChecklistByDefault])
+  }, [todo, isOpen, openChecklistByDefault, checklistInitialized])
 
   // Sync checklist items when todo changes
   useEffect(() => {
     if (todo) {
+      console.log('Modal: Syncing checklist items from todo:', todo.checklist_items);
       setCurrentChecklistItems(todo.checklist_items || [])
     }
   }, [todo?.checklist_items])
@@ -101,6 +111,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   // Sync labels when they change
   useEffect(() => {
     if (todo) {
+      console.log('Modal: Syncing labels from todo:', todo.labels);
       setCurrentTodoLabels(todo.labels || [])
     }
   }, [todo?.labels])
@@ -133,10 +144,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
-        const labelToAdd = labels.find(l => l.id === labelId)
-        if (labelToAdd) {
-          setCurrentTodoLabels(prev => [...prev, labelToAdd])
-        }
+        // Ne pas mettre à jour l'état local, laisser Socket.io le faire
+        // Le backend émet déjà l'événement 'todo:label-added'
         onLabelsUpdated()
       }
     } catch (error) {
@@ -153,7 +162,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
-        setCurrentTodoLabels(prev => prev.filter(label => label.id !== labelId))
+        // Ne pas mettre à jour l'état local, laisser Socket.io le faire
+        // Le backend émet déjà l'événement 'todo:label-removed'
         onLabelsUpdated()
       }
     } catch (error) {
@@ -178,9 +188,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
-        const data = await response.json()
-        // Immediate update to local state
-        setCurrentChecklistItems(prev => [...prev, data.checklistItem])
+        // Ne pas mettre à jour l'état local, laisser Socket.io le faire
+        // Le backend émet déjà l'événement 'todo:checklist-item-created'
         onLabelsUpdated() // Refresh the todo data
       }
     } catch (error) {
@@ -189,13 +198,6 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   }
 
   const handleToggleChecklistItem = async (itemId: number, completed: boolean) => {
-    // Immediate update to local state
-    setCurrentChecklistItems(prev => 
-      prev.map(item => 
-        item.id === itemId ? { ...item, is_completed: completed } : item
-      )
-    )
-
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/todos/${todo.id}/checklist/${itemId}`, {
@@ -208,34 +210,16 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
+        // Ne pas mettre à jour l'état local, laisser Socket.io le faire
+        // Le backend émet déjà l'événement 'todo:checklist-item-updated'
         onLabelsUpdated() // Refresh the todo data
-      } else {
-        // Revert on error
-        setCurrentChecklistItems(prev => 
-          prev.map(item => 
-            item.id === itemId ? { ...item, is_completed: !completed } : item
-          )
-        )
       }
     } catch (error) {
       console.error('Error toggling checklist item:', error)
-      // Revert on error
-      setCurrentChecklistItems(prev => 
-        prev.map(item => 
-          item.id === itemId ? { ...item, is_completed: !completed } : item
-        )
-      )
     }
   }
 
   const handleUpdateChecklistItem = async (itemId: number, title: string) => {
-    // Immediate update to local state
-    setCurrentChecklistItems(prev => 
-      prev.map(item => 
-        item.id === itemId ? { ...item, title } : item
-      )
-    )
-
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/todos/${todo.id}/checklist/${itemId}`, {
@@ -248,6 +232,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
+        // Ne pas mettre à jour l'état local, laisser Socket.io le faire
+        // Le backend émet déjà l'événement 'todo:checklist-item-updated'
         onLabelsUpdated() // Refresh the todo data
       }
     } catch (error) {
@@ -256,9 +242,6 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   }
 
   const handleDeleteChecklistItem = async (itemId: number) => {
-    // Immediate update to local state
-    setCurrentChecklistItems(prev => prev.filter(item => item.id !== itemId))
-
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/todos/${todo.id}/checklist/${itemId}`, {
@@ -267,6 +250,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
+        // Ne pas mettre à jour l'état local, laisser Socket.io le faire
+        // Le backend émet déjà l'événement 'todo:checklist-item-deleted'
         onLabelsUpdated() // Refresh the todo data
       }
     } catch (error) {
@@ -534,6 +519,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                           className="checklist-item-text"
                           value={item.title}
                           onChange={(e) => {
+                            // Mettre à jour l'état local immédiatement pour la saisie
                             setCurrentChecklistItems(prev => 
                               prev.map(i => 
                                 i.id === item.id ? { ...i, title: e.target.value } : i

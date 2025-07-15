@@ -9,6 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
+  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
   login: (accessToken: string, refreshToken: string, userData: User) => void
@@ -32,6 +33,7 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null)
+  const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const isAuthenticated = !!user
@@ -41,6 +43,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.setItem('refreshToken', refreshToken)
     localStorage.setItem('user', JSON.stringify(userData))
     setUser(userData)
+    setToken(accessToken)
   }
 
   const logout = () => {
@@ -48,6 +51,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     setUser(null)
+    setToken(null)
   }
 
   const refreshAccessToken = async (): Promise<boolean> => {
@@ -67,6 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const data = await response.json()
         localStorage.setItem('accessToken', data.accessToken)
         localStorage.setItem('refreshToken', data.refreshToken)
+        setToken(data.accessToken)
         return true
       } else {
         logout()
@@ -98,6 +103,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const data = await response.json()
         setUser(data.user)
         localStorage.setItem('user', JSON.stringify(data.user))
+        const storedToken = localStorage.getItem('accessToken')
+        setToken(storedToken)
         return true
       } else if (response.status === 401) {
         const refreshed = await refreshAccessToken()
@@ -127,6 +134,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const value = {
     user,
+    token,
     isAuthenticated,
     isLoading,
     login,

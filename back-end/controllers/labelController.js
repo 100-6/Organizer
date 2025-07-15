@@ -4,6 +4,7 @@ const createLabel = async (req, res) => {
     try {
       const { name, color, workspaceId } = req.body
       const userId = req.user.id
+      const io = req.app.get('io')
   
       // Vérifier que l'utilisateur a accès au workspace
       const workspaceCheck = await pool.query(
@@ -21,6 +22,9 @@ const createLabel = async (req, res) => {
         [name, color, workspaceId]
       )
   
+      // Émettre l'événement Socket.io
+      io.emitToWorkspace(workspaceId, 'label:created', result.rows[0])
+      
       res.status(201).json({ label: result.rows[0] })
     } catch (error) {
       console.error('Erreur lors de la création du label:', error)
@@ -80,6 +84,7 @@ const updateLabel = async (req, res) => {
         const { id } = req.params;
         const { name, color } = req.body;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id)) {
             return res.status(400).json({
@@ -138,6 +143,9 @@ const updateLabel = async (req, res) => {
             values
         );
 
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(labelResult.rows[0].workspace_id, 'label:updated', result.rows[0]);
+
         res.json({
             message: 'Label mis à jour avec succès',
             label: result.rows[0]
@@ -160,6 +168,7 @@ const deleteLabel = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         if (isNaN(id)) {
             return res.status(400).json({
@@ -190,6 +199,9 @@ const deleteLabel = async (req, res) => {
         }
 
         await pool.query('DELETE FROM labels WHERE id = $1', [id]);
+
+        // Émettre l'événement Socket.io
+        io.emitToWorkspace(labelResult.rows[0].workspace_id, 'label:deleted', parseInt(id));
 
         res.json({
             message: 'Label supprimé avec succès'
