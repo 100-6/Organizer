@@ -211,6 +211,16 @@ module.exports = (io) => {
     io.to(`workspace-${workspaceId}`).emit(event, data);
   };
 
+  io.emitToUser = (email, event, data) => {
+    // Find user by email and emit event to their socket
+    for (const [userId, userConnection] of connectedUsers) {
+      if (userConnection.email === email) {
+        io.to(userConnection.socketId).emit(event, data);
+        break;
+      }
+    }
+  };
+
   io.getWorkspacePresence = getWorkspacePresence;
   io.connectedUsers = connectedUsers;
 };

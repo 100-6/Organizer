@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSocket } from '../../contexts/SocketContext'
 import { 
   LoadingSpinner, 
   AlertMessage, 
@@ -29,6 +30,7 @@ interface Workspace {
 
 const Dashboard = () => {
   const { user, logout } = useAuth()
+  const { onMemberJoined, offMemberJoined } = useSocket()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [filteredWorkspaces, setFilteredWorkspaces] = useState<Workspace[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -50,6 +52,26 @@ const Dashboard = () => {
   useEffect(() => {
     fetchWorkspaces()
   }, [])
+
+  // Écouter les événements Socket.io pour les nouveaux membres
+  useEffect(() => {
+    const handleMemberJoined = (data: { workspace: Workspace }) => {
+      console.log('Member joined workspace:', data)
+      setWorkspaces(prev => 
+        prev.map(ws => 
+          ws.id === data.workspace.id 
+            ? { ...ws, member_count: data.workspace.member_count }
+            : ws
+        )
+      )
+    }
+
+    onMemberJoined(handleMemberJoined)
+
+    return () => {
+      offMemberJoined(handleMemberJoined)
+    }
+  }, [onMemberJoined, offMemberJoined])
 
   useEffect(() => {
     if (searchQuery.trim()) {

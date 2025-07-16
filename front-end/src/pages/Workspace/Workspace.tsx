@@ -76,7 +76,7 @@ interface Label {
 
 const Workspace = () => {
   const { id } = useParams<{ id: string }>()
-  const { user, logout } = useAuth()
+  const { user, logout, token } = useAuth()
   const { socket, joinWorkspace, leaveWorkspace, isConnected } = useSocket()
   const navigate = useNavigate()
   
@@ -122,17 +122,17 @@ const Workspace = () => {
       }))
     }
 
-    const handleTodoUpdated = (todo: Todo) => {
+    const handleTodoUpdated = (updatedTodo: Todo) => {
       setTodos(prev => ({
         ...prev,
-        [todo.list_id]: (prev[todo.list_id] || []).map(t => 
-          t.id === todo.id ? todo : t
+        [updatedTodo.list_id]: (prev[updatedTodo.list_id] || []).map(t => 
+          t.id === updatedTodo.id ? { ...t, ...updatedTodo } : t  // MERGE au lieu d'écraser
         )
       }))
       
       // Update selectedTodo if it's the same todo and modal is open
-      if (selectedTodo && selectedTodo.id === todo.id) {
-        setSelectedTodo(todo)
+      if (selectedTodo && selectedTodo.id === updatedTodo.id) {
+        setSelectedTodo(prev => ({ ...prev, ...updatedTodo }))  // MERGE aussi
       }
     }
 
@@ -177,6 +177,22 @@ const Workspace = () => {
         const newTodos = { ...prev }
         delete newTodos[listId]
         return newTodos
+      })
+    }
+
+    const handleListPositionsUpdated = (data: { lists: { id: number; position: number }[] }) => {
+      console.log('Real-time list positions updated:', data)
+      
+      // Réorganiser les listes selon les nouvelles positions
+      setLists(prev => {
+        const newLists = [...prev]
+        const positionMap = new Map(data.lists.map(l => [l.id, l.position]))
+        
+        return newLists.sort((a, b) => {
+          const posA = positionMap.get(a.id) ?? a.position
+          const posB = positionMap.get(b.id) ?? b.position
+          return posA - posB
+        })
       })
     }
 
@@ -537,6 +553,7 @@ const Workspace = () => {
     socket.on('list:created', handleListCreated)
     socket.on('list:updated', handleListUpdated)
     socket.on('list:deleted', handleListDeleted)
+    socket.on('list:positions-updated', handleListPositionsUpdated)
     socket.on('label:created', handleLabelCreated)
     socket.on('label:updated', handleLabelUpdated)
     socket.on('label:deleted', handleLabelDeleted)
@@ -557,6 +574,7 @@ const Workspace = () => {
       socket.off('list:created', handleListCreated)
       socket.off('list:updated', handleListUpdated)
       socket.off('list:deleted', handleListDeleted)
+      socket.off('list:positions-updated', handleListPositionsUpdated)
       socket.off('label:created', handleLabelCreated)
       socket.off('label:updated', handleLabelUpdated)
       socket.off('label:deleted', handleLabelDeleted)
@@ -734,7 +752,8 @@ const Workspace = () => {
       })
 
       if (response.ok) {
-        await fetchWorkspaceData()
+        // Ne pas recharger toutes les données, laisser Socket.io gérer la synchronisation
+        console.log('Todo updated successfully, waiting for Socket.io event')
       } else {
         const data = await response.json()
         setError(data.error || 'Erreur lors de la mise à jour')
@@ -904,31 +923,51 @@ const Workspace = () => {
   }
 
   const moveList = async (from: number, to: number) => {
-    setLists(prevLists => update(prevLists, {
+    // Calculer le nouvel ordre avec les nouvelles positions
+    const updatedLists = update(lists, {
       $splice: [
         [from, 1],
-        [to, 0, prevLists[from]]
+        [to, 0, lists[from]]
       ]
-    }))
+    })
 
-    // Met à jour la position de chaque liste dans l'ordre actuel
-    const newOrder = lists.map((list, idx) => ({
+    // Mettre à jour l'état local immédiatement
+    setLists(updatedLists)
+
+    // Calculer les nouvelles positions basées sur l'ordre mis à jour
+    const newOrder = updatedLists.map((list, idx) => ({
       id: list.id,
       position: idx
     }))
 
+    console.log('Sending lists data:', JSON.stringify(newOrder, null, 2));
+
     try {
-      const token = localStorage.getItem('accessToken')
-      await fetch('/api/lists/update-positions', {
-        method: 'POST',
+      console.log('Request payload:', JSON.stringify({ lists: newOrder }, null, 2))
+      console.log('Token from context:', token)
+      
+      const response = await fetch('/api/lists/positions', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token || localStorage.getItem('accessToken')}`
         },
         body: JSON.stringify({ lists: newOrder })
       })
-      // Optionnel : await fetchWorkspaceData()
+
+      console.log('Response status:', response.status)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.log('Response error:', errorText)
+        throw new Error('Erreur lors de la sauvegarde des positions')
+      }
+
+      console.log('List positions saved successfully')
     } catch (err) {
+      console.error('Error saving list positions:', err)
+      // Rollback en cas d'erreur
+      setLists(lists) // Revenir à l'état précédent
+      setError('Erreur lors de la sauvegarde des positions des listes')
     }
   }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useSocket } from '../contexts/SocketContext'
 import './InvitationsPanel.css'
 
 interface Invitation {
@@ -20,6 +21,7 @@ const InvitationsPanel: React.FC<InvitationsPanelProps> = ({ onInvitationHandled
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<number | null>(null)
+  const { onInvitationReceived, onInvitationDeclined, offInvitationReceived, offInvitationDeclined } = useSocket()
 
   const fetchInvitations = async () => {
     try {
@@ -44,6 +46,34 @@ const InvitationsPanel: React.FC<InvitationsPanelProps> = ({ onInvitationHandled
   useEffect(() => {
     fetchInvitations()
   }, [])
+
+  // Écouter les événements Socket.io pour les nouvelles invitations
+  useEffect(() => {
+    const handleInvitationReceived = (invitation: Invitation) => {
+      console.log('New invitation received:', invitation)
+      setInvitations(prev => {
+        // Éviter les doublons
+        const exists = prev.some(inv => inv.id === invitation.id)
+        if (!exists) {
+          return [...prev, invitation]
+        }
+        return prev
+      })
+    }
+
+    const handleInvitationDeclined = (data: { workspace_id: number; email: string }) => {
+      console.log('Invitation declined:', data)
+      // Optionnel: afficher une notification
+    }
+
+    onInvitationReceived(handleInvitationReceived)
+    onInvitationDeclined(handleInvitationDeclined)
+
+    return () => {
+      offInvitationReceived(handleInvitationReceived)
+      offInvitationDeclined(handleInvitationDeclined)
+    }
+  }, [onInvitationReceived, onInvitationDeclined, offInvitationReceived, offInvitationDeclined])
 
   const handleInvitation = async (invitationToken: string, action: 'accept' | 'decline', invitationId: number) => {
     setProcessingId(invitationId)

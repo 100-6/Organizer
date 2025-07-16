@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import LabelMenu from './LabelMenu'
 import Checklist from './Checklist'
+import { useSocket } from '../../../contexts/SocketContext'
 import './CardDetailsModal.css'
 
 interface Todo {
@@ -81,6 +82,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   const [editingLabel, setEditingLabel] = useState<Label | null>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const descriptionRef = useRef<HTMLTextAreaElement>(null)
+  const { socket } = useSocket()
 
   useEffect(() => {
     if (todo && isOpen) {
@@ -116,6 +118,128 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     }
   }, [todo?.labels])
 
+  // Socket.io listeners for real-time updates
+  useEffect(() => {
+    if (!socket || !todo || !isOpen) return
+
+    console.log('Modal: Setting up Socket.io listeners for todo:', todo.id)
+
+    // Label events
+    const handleLabelAdded = (data: { todoId: number | string; labelId: number }) => {
+      console.log('Modal: Received todo:label-added', data)
+      const todoId = typeof data.todoId === 'string' ? parseInt(data.todoId) : data.todoId
+      if (!todo || todoId !== todo.id) return
+      
+      const label = labels.find(l => l.id === data.labelId)
+      if (label) {
+        console.log('Modal: Found label to add:', label)
+        setCurrentTodoLabels(prev => {
+          const exists = prev.find(l => l.id === data.labelId)
+          if (!exists) {
+            console.log('Modal: Adding label to currentTodoLabels:', label)
+            return [...prev, label]
+          }
+          console.log('Modal: Label already exists in currentTodoLabels')
+          return prev
+        })
+      } else {
+        console.log('Modal: Label not found in labels array:', data.labelId)
+      }
+    }
+
+    const handleLabelRemoved = (data: { todoId: number | string; labelId: number }) => {
+      console.log('Modal: Received todo:label-removed', data)
+      const todoId = typeof data.todoId === 'string' ? parseInt(data.todoId) : data.todoId
+      if (!todo || todoId !== todo.id)  return
+      
+      setCurrentTodoLabels(prev => prev.filter(l => l.id !== data.labelId))
+    }
+
+    // Label updated event for rename functionality
+    const handleLabelUpdated = (updatedLabel: Label) => {
+      console.log('Modal: Received label:updated', updatedLabel)
+      
+      // Vérifier que l'objet label existe et a un ID
+      if (!updatedLabel || !updatedLabel.id) {
+        console.error('Modal: Invalid label data received:', updatedLabel)
+        return
+      }
+      
+      // Update the label in currentTodoLabels if it exists
+      setCurrentTodoLabels(prev => 
+        prev.map(label => 
+          label.id === updatedLabel.id ? updatedLabel : label
+        )
+      )
+    }
+
+    // Checklist events
+    const handleChecklistItemCreated = (data: { todoId: number; checklistItem: ChecklistItem }) => {
+      console.log('Modal: Received todo:checklist-item-created', data)
+      if (!todo || data.todoId !== todo.id) return
+      
+      setCurrentChecklistItems(prev => [...prev, data.checklistItem])
+    }
+
+    const handleChecklistItemUpdated = (data: { todoId: number; checklistItem: ChecklistItem }) => {
+      console.log('Modal: Received todo:checklist-item-updated', data)
+      if (!todo || data.todoId !== todo.id) return
+      
+      setCurrentChecklistItems(prev => 
+        prev.map(item => 
+          item.id === data.checklistItem.id ? data.checklistItem : item
+        )
+      )
+    }
+
+    const handleChecklistItemDeleted = (data: { todoId: number; checklistItemId: number }) => {
+      console.log('Modal: Received todo:checklist-item-deleted', data)
+      if (!todo || data.todoId !== todo.id) return
+      
+      setCurrentChecklistItems(prev => prev.filter(item => item.id !== data.checklistItemId))
+    }
+
+    // Member assignment events
+    const handleMemberAssigned = (data: { todoId: number; userId: number; user: any }) => {
+      console.log('Modal: Received todo:member-assigned', data)
+      if (!todo || data.todoId !== todo.id) return
+      
+      // This will trigger a re-render and the assigned members will be updated via props
+      onLabelsUpdated()
+    }
+
+    const handleMemberUnassigned = (data: { todoId: number; userId: number }) => {
+      console.log('Modal: Received todo:member-unassigned', data)
+      if (!todo || data.todoId !== todo.id) return
+      
+      // This will trigger a re-render and the assigned members will be updated via props
+      onLabelsUpdated()
+    }
+
+    // Register listeners
+    socket.on('todo:label-added', handleLabelAdded)
+    socket.on('todo:label-removed', handleLabelRemoved)
+    socket.on('label:updated', handleLabelUpdated)
+    socket.on('todo:checklist-item-created', handleChecklistItemCreated)
+    socket.on('todo:checklist-item-updated', handleChecklistItemUpdated)
+    socket.on('todo:checklist-item-deleted', handleChecklistItemDeleted)
+    socket.on('todo:member-assigned', handleMemberAssigned)
+    socket.on('todo:member-unassigned', handleMemberUnassigned)
+
+    // Cleanup listeners on unmount or when todo changes
+    return () => {
+      console.log('Modal: Cleaning up Socket.io listeners')
+      socket.off('todo:label-added', handleLabelAdded)
+      socket.off('todo:label-removed', handleLabelRemoved)
+      socket.off('label:updated', handleLabelUpdated)
+      socket.off('todo:checklist-item-created', handleChecklistItemCreated)
+      socket.off('todo:checklist-item-updated', handleChecklistItemUpdated)
+      socket.off('todo:checklist-item-deleted', handleChecklistItemDeleted)
+      socket.off('todo:member-assigned', handleMemberAssigned)
+      socket.off('todo:member-unassigned', handleMemberUnassigned)
+    }
+  }, [socket, todo, isOpen, labels, onLabelsUpdated])
+
   if (!isOpen || !todo) return null
 
 
@@ -146,7 +270,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:label-added'
-        onLabelsUpdated()
+        console.log('Modal: Label added successfully, waiting for Socket.io event')
       }
     } catch (error) {
       console.error('Error adding label:', error)
@@ -164,7 +288,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:label-removed'
-        onLabelsUpdated()
+        console.log('Modal: Label removed successfully, waiting for Socket.io event')
       }
     } catch (error) {
       console.error('Error removing label:', error)
@@ -190,7 +314,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-created'
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error adding checklist item:', error)
@@ -212,7 +336,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-updated'
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error toggling checklist item:', error)
@@ -234,7 +358,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-updated'
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error updating checklist item:', error)
@@ -252,7 +376,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-deleted'
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error deleting checklist item:', error)
@@ -274,7 +398,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       
       if (response.ok) {
         setShowMemberMenu(false)
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error assigning member:', error)
@@ -294,7 +418,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error removing member:', error)
@@ -314,7 +438,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error assigning member:', error)
@@ -330,7 +454,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       })
       
       if (response.ok) {
-        onLabelsUpdated() // Refresh the todo data
+        // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
     } catch (error) {
       console.error('Error removing member assignment:', error)

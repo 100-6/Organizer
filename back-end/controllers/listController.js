@@ -297,7 +297,11 @@ const updateListsPositions = async (req, res) => {
         const { lists } = req.body;
         const userId = req.user.id;
 
+        console.log('Received lists data:', JSON.stringify(lists, null, 2));
+        console.log('User ID:', userId);
+
         if (!Array.isArray(lists) || lists.length === 0) {
+            console.log('Invalid lists data - not an array or empty');
             return res.status(400).json({
                 error: 'Un tableau de listes avec leurs positions est requis'
             });
@@ -331,13 +335,16 @@ const updateListsPositions = async (req, res) => {
         const sortedLists = [...lists].sort((a, b) => a.id - b.id);
 
         for (const { id, position } of sortedLists) {
-            if (isNaN(id) || position === undefined) {
+            console.log(`Processing list - id: ${id} (type: ${typeof id}), position: ${position} (type: ${typeof position})`);
+            if (isNaN(id) || typeof position !== 'number' || position < 0) {
+                console.log(`Invalid data for list ${id}: position = ${position}`);
                 await client.query('ROLLBACK');
                 return res.status(400).json({
-                    error: `Données invalides pour la liste ${id}`
+                    error: `Données invalides pour la liste ${id}: position = ${position}`
                 });
             }
 
+            console.log(`Updating list ${id} to position ${position}`);
             await client.query(
                 'UPDATE lists SET position = $1 WHERE id = $2',
                 [parseInt(position), parseInt(id)]
@@ -345,6 +352,14 @@ const updateListsPositions = async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        // Emit socket event pour la synchronisation temps réel
+        const io = req.app.get('io');
+        if (io) {
+            io.emitToWorkspace(workspaceResult.rows[0].workspace_id, 'list:positions-updated', {
+                lists: sortedLists
+            });
+        }
 
         res.json({
             message: 'Positions des listes mises à jour avec succès'

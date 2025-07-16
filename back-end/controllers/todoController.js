@@ -752,7 +752,7 @@ const addLabelToTodo = async (req, res) => {
       
       // Emit socket event
       if (io) {
-        io.emitToWorkspace(todo.workspace_id, 'todo:label-added', { todoId, labelId });
+        io.emitToWorkspace(todo.workspace_id, 'todo:label-added', { todoId: parseInt(todoId), labelId });
       }
   
       res.json({

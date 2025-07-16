@@ -16,9 +16,9 @@ const {
 
 router.post('/', authenticateToken, validateListCreation, createList);
 router.get('/workspace/:workspaceId', authenticateToken, getWorkspaceLists);
+router.put('/positions', authenticateToken, updateListsPositions);
 router.get('/:id', authenticateToken, getListById);
 router.put('/:id', authenticateToken, validateListUpdate, updateList);
 router.delete('/:id', authenticateToken, deleteList);
-router.patch('/positions', authenticateToken, updateListsPositions);
 
 module.exports = router;

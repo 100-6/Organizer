@@ -15,6 +15,12 @@ interface SocketContextType {
   joinWorkspace: (workspaceId: number) => void;
   leaveWorkspace: (workspaceId: number) => void;
   emitUserActivity: (workspaceId: number, activity: string) => void;
+  onInvitationReceived: (callback: (invitation: any) => void) => void;
+  onInvitationDeclined: (callback: (data: any) => void) => void;
+  onMemberJoined: (callback: (data: any) => void) => void;
+  offInvitationReceived: (callback: (invitation: any) => void) => void;
+  offInvitationDeclined: (callback: (data: any) => void) => void;
+  offMemberJoined: (callback: (data: any) => void) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -138,6 +144,42 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
   }, [socket, isConnected]);
 
+  const onInvitationReceived = useCallback((callback: (invitation: any) => void) => {
+    if (socket) {
+      socket.on('invitation:received', callback);
+    }
+  }, [socket]);
+
+  const onInvitationDeclined = useCallback((callback: (data: any) => void) => {
+    if (socket) {
+      socket.on('invitation:declined', callback);
+    }
+  }, [socket]);
+
+  const onMemberJoined = useCallback((callback: (data: any) => void) => {
+    if (socket) {
+      socket.on('member:joined', callback);
+    }
+  }, [socket]);
+
+  const offInvitationReceived = useCallback((callback: (invitation: any) => void) => {
+    if (socket) {
+      socket.off('invitation:received', callback);
+    }
+  }, [socket]);
+
+  const offInvitationDeclined = useCallback((callback: (data: any) => void) => {
+    if (socket) {
+      socket.off('invitation:declined', callback);
+    }
+  }, [socket]);
+
+  const offMemberJoined = useCallback((callback: (data: any) => void) => {
+    if (socket) {
+      socket.off('member:joined', callback);
+    }
+  }, [socket]);
+
   return (
     <SocketContext.Provider
       value={{
@@ -146,7 +188,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         onlineUsers,
         joinWorkspace,
         leaveWorkspace,
-        emitUserActivity
+        emitUserActivity,
+        onInvitationReceived,
+        onInvitationDeclined,
+        onMemberJoined,
+        offInvitationReceived,
+        offInvitationDeclined,
+        offMemberJoined
       }}
     >
       {children}

@@ -8,6 +8,7 @@ const createInvitation = async (req, res) => {
     const { workspaceId } = req.params;
     const { email, role = 'member' } = req.body;
     const invitedBy = req.user.id;
+    const io = req.app.get('io');
 
     await client.query('BEGIN');
 
@@ -70,6 +71,7 @@ const createInvitation = async (req, res) => {
       SELECT 
         wi.*,
         w.name as workspace_name,
+        w.description as workspace_description,
         u.username as invited_by_username
       FROM workspace_invitations wi
       JOIN workspaces w ON wi.workspace_id = w.id
@@ -77,9 +79,16 @@ const createInvitation = async (req, res) => {
       WHERE wi.id = $1
     `, [result.rows[0].id]);
 
+    const invitation = invitationData.rows[0];
+
+    // Émettre l'événement Socket.io pour l'utilisateur invité
+    if (io) {
+      io.emitToUser(email, 'invitation:received', invitation);
+    }
+
     res.status(201).json({
       message: 'Invitation created successfully',
-      invitation: invitationData.rows[0]
+      invitation: invitation
     });
 
   } catch (error) {
@@ -99,6 +108,7 @@ const acceptInvitation = async (req, res) => {
   try {
     const { token } = req.params;
     const userId = req.user.id;
+    const io = req.app.get('io');
 
     await client.query('BEGIN');
 
@@ -119,7 +129,7 @@ const acceptInvitation = async (req, res) => {
 
     // Vérifier que l'email correspond à l'utilisateur connecté
     const user = await client.query(`
-      SELECT email FROM users WHERE id = $1
+      SELECT email, username FROM users WHERE id = $1
     `, [userId]);
 
     if (user.rows[0].email !== inv.email) {
@@ -157,6 +167,26 @@ const acceptInvitation = async (req, res) => {
 
     await client.query('COMMIT');
 
+    // Récupérer les infos du workspace pour l'événement
+    const workspaceData = await client.query(`
+      SELECT w.*, 
+             (SELECT COUNT(*) FROM workspace_members WHERE workspace_id = w.id) as member_count
+      FROM workspaces w WHERE w.id = $1
+    `, [inv.workspace_id]);
+
+    const workspace = workspaceData.rows[0];
+
+    // Émettre l'événement Socket.io pour notifier les autres membres du workspace
+    if (io) {
+      io.emitToWorkspace(inv.workspace_id, 'member:joined', {
+        userId: userId,
+        username: user.rows[0].username,
+        email: user.rows[0].email,
+        role: inv.role,
+        workspace: workspace
+      });
+    }
+
     res.json({
       message: 'Invitation accepted successfully',
       workspace_id: inv.workspace_id,
@@ -180,6 +210,7 @@ const declineInvitation = async (req, res) => {
   try {
     const { token } = req.params;
     const userId = req.user.id;
+    const io = req.app.get('io');
 
     // Vérifier l'invitation
     const invitation = await client.query(`
@@ -197,7 +228,7 @@ const declineInvitation = async (req, res) => {
 
     // Vérifier que l'email correspond à l'utilisateur connecté
     const user = await client.query(`
-      SELECT email FROM users WHERE id = $1
+      SELECT email, username FROM users WHERE id = $1
     `, [userId]);
 
     if (user.rows[0].email !== inv.email) {
@@ -212,6 +243,15 @@ const declineInvitation = async (req, res) => {
       SET status = 'declined'
       WHERE id = $1
     `, [inv.id]);
+
+    // Émettre l'événement Socket.io pour notifier l'expéditeur
+    if (io) {
+      io.emitToUser(inv.email, 'invitation:declined', {
+        workspace_id: inv.workspace_id,
+        email: inv.email,
+        declined_by: user.rows[0].username
+      });
+    }
 
     res.json({
       message: 'Invitation declined successfully'
