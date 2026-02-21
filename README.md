@@ -1,5 +1,4 @@
-# Collaborative TODO App
-
+# Organizer
 Une plateforme moderne de gestion de projets et de tâches en temps réel, conçue pour simplifier la collaboration d'équipe.
 
 Version : 1.0.0
