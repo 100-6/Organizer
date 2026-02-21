@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef } from 'react'
 import { useDrag, useDrop } from 'react-dnd'
 import './SimpleTodoCard.css'
 
@@ -132,7 +132,7 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
       const today = new Date()
       const tomorrow = new Date(today)
       tomorrow.setDate(today.getDate() + 1)
-      
+
       let dateStr = ''
       if (dueDate.toDateString() === today.toDateString()) {
         dateStr = 'Today'
@@ -144,14 +144,14 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
           day: 'numeric'
         })
       }
-      
+
       if (time) {
         const [hours, minutes] = time.split(':')
         const hour12 = parseInt(hours) > 12 ? parseInt(hours) - 12 : parseInt(hours)
         const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM'
         dateStr += ` ${hour12}:${minutes} ${ampm}`
       }
-      
+
       return dateStr
     } catch (error) {
       return 'Invalid date'
@@ -175,11 +175,11 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
 
   const getChecklistColor = () => {
     if (todo.checklist_count === 0) return '#6b7280' // gris
-    
+
     const completedCount = todo.completed_checklist_count
     const totalCount = todo.checklist_count
     const percentage = (completedCount / totalCount) * 100
-    
+
     if (percentage === 0) return '#6b7280' // gris
     if (percentage < 25) return '#ef4444' // rouge
     if (percentage < 50) return '#f59e0b' // jaune
@@ -209,7 +209,7 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
   const hasDescription = todo.description && todo.description.trim().length > 0
 
   return (
-    <div 
+    <div
       ref={ref}
       data-handler-id={handlerId}
       className={`simple-todo-card ${isDragging ? 'simple-todo-card--dragging' : ''} ${isOver && !isDragging ? 'simple-todo-card--drag-over' : ''}`}
@@ -249,8 +249,8 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
                   {hasDueDate && (
                     <div className={`card-badge ${isOverdue(todo.due_date!, todo.due_time) ? 'card-badge--overdue' : ''}`}>
                       <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
                       <span>{formatDueDate(todo.due_date!, todo.due_time)}</span>
                     </div>
@@ -259,17 +259,17 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
                   {hasDescription && (
                     <div className="card-badge">
                       <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2"/>
-                        <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2"/>
-                        <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2"/>
-                        <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2" />
+                        <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2" />
+                        <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2" />
+                        <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2" />
                       </svg>
                     </div>
                   )}
 
                   {hasChecklist && (
-                    <div 
-                      className="card-badge card-badge--checklist" 
+                    <div
+                      className="card-badge card-badge--checklist"
                       style={{ backgroundColor: getChecklistColor() }}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -277,8 +277,8 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
                       }}
                     >
                       <svg className="card-badge-icon" viewBox="0 0 24 24" fill="none">
-                        <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2" />
                       </svg>
                       <span>{todo.completed_checklist_count}/{todo.checklist_count}</span>
                     </div>
@@ -292,10 +292,10 @@ const SimpleTodoCard: React.FC<SimpleTodoCardProps> = ({ todo, onClick, onCheckl
                   {hasAssignedMembers ? (
                     // Affichage des assignations multiples
                     <>
-                      {todo.assigned_members!.slice(0, 4).map((member, index) => (
-                        <div 
-                          key={member.id} 
-                          className="card-member-avatar" 
+                      {todo.assigned_members!.slice(0, 4).map((member) => (
+                        <div
+                          key={member.id}
+                          className="card-member-avatar"
                           title={member.username}
                           style={{ backgroundColor: getMemberAvatarColor(member.id) }}
                         >

@@ -2,19 +2,16 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSocket } from '../../contexts/SocketContext'
-import { 
-  LoadingSpinner, 
-  AlertMessage, 
-  Button, 
-  Avatar, 
-  Modal, 
+import {
+  LoadingSpinner,
+  AlertMessage,
+  Button,
+  Modal,
   FormInput,
-  FormTextarea,
   ErrorBoundary
 } from '../../components'
 import WorkspaceHeader from './components/WorkspaceHeader'
 import ListColumn from './components/ListColumn'
-import SimpleTodoCard from './components/SimpleTodoCard'
 import CardDetailsModal from './components/CardDetailsModal'
 import OnlineUsers from '../../components/OnlineUsers'
 import { DndProvider } from 'react-dnd'
@@ -64,6 +61,8 @@ interface Todo {
   completed_checklist_count: number
   labels: Label[]
   workspace_id?: number
+  assigned_members?: Member[]
+  checklist_items?: any[]
 }
 
 interface Label {
@@ -76,22 +75,22 @@ interface Label {
 
 const Workspace = () => {
   const { id } = useParams<{ id: string }>()
-  const { user, logout, token } = useAuth()
+  const { logout, token } = useAuth()
   const { socket, joinWorkspace, leaveWorkspace, isConnected } = useSocket()
   const navigate = useNavigate()
-  
+
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [lists, setLists] = useState<List[]>([])
   const [todos, setTodos] = useState<{ [listId: number]: Todo[] }>({})
   const [labels, setLabels] = useState<Label[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  
+
   const [showCreateListModal, setShowCreateListModal] = useState(false)
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false)
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const [openChecklistByDefault, setOpenChecklistByDefault] = useState(false)
-  
+
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [isCreatingList, setIsCreatingList] = useState(false)
   const [globalExpandedLabels, setGlobalExpandedLabels] = useState(false)
@@ -107,7 +106,7 @@ const Workspace = () => {
     if (!socket || !id || !isConnected) return
 
     const workspaceId = parseInt(id)
-    
+
     // Join workspace room
     console.log('Joining workspace:', workspaceId);
     joinWorkspace(workspaceId)
@@ -125,11 +124,11 @@ const Workspace = () => {
     const handleTodoUpdated = (updatedTodo: Todo) => {
       setTodos(prev => ({
         ...prev,
-        [updatedTodo.list_id]: (prev[updatedTodo.list_id] || []).map(t => 
+        [updatedTodo.list_id]: (prev[updatedTodo.list_id] || []).map(t =>
           t.id === updatedTodo.id ? { ...t, ...updatedTodo } : t  // MERGE au lieu d'écraser
         )
       }))
-      
+
       // Update selectedTodo if it's the same todo and modal is open
       if (selectedTodo && selectedTodo.id === updatedTodo.id) {
         setSelectedTodo(prev => ({ ...prev, ...updatedTodo }))  // MERGE aussi
@@ -146,18 +145,18 @@ const Workspace = () => {
     const handleTodoMoved = (data: { id: number; fromListId: number; toListId: number; todo: Todo }) => {
       setTodos(prev => {
         const newTodos = { ...prev }
-        
+
         // Remove from old list
         if (newTodos[data.fromListId]) {
           newTodos[data.fromListId] = newTodos[data.fromListId].filter(t => t.id !== data.id)
         }
-        
+
         // Add to new list
         if (!newTodos[data.toListId]) {
           newTodos[data.toListId] = []
         }
         newTodos[data.toListId] = [...newTodos[data.toListId], data.todo]
-        
+
         return newTodos
       })
     }
@@ -182,12 +181,12 @@ const Workspace = () => {
 
     const handleListPositionsUpdated = (data: { lists: { id: number; position: number }[] }) => {
       console.log('Real-time list positions updated:', data)
-      
+
       // Réorganiser les listes selon les nouvelles positions
       setLists(prev => {
         const newLists = [...prev]
         const positionMap = new Map(data.lists.map(l => [l.id, l.position]))
-        
+
         return newLists.sort((a, b) => {
           const posA = positionMap.get(a.id) ?? a.position
           const posB = positionMap.get(b.id) ?? b.position
@@ -209,36 +208,37 @@ const Workspace = () => {
     const handleLabelUpdated = (label: Label) => {
       console.log('Real-time label updated:', label);
       setLabels(prev => prev.map(l => l.id === label.id ? label : l))
-      
+
       // Forcer le re-render des todos qui utilisent ce label
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedSelectedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.labels && todo.labels.some(l => l.id === label.id)) {
               const updatedTodo = {
                 ...todo,
                 labels: todo.labels.map(l => l.id === label.id ? label : l)
               }
-              
+
               // Check if this is the selected todo
               if (selectedTodo && selectedTodo.id === todo.id) {
                 updatedSelectedTodo = updatedTodo
               }
-              
+
               return updatedTodo
             }
             return todo
           })
         })
-        
+
         // Update selectedTodo if it was affected
         if (updatedSelectedTodo) {
           setSelectedTodo(updatedSelectedTodo)
         }
-        
+
         return newTodos
       })
     }
@@ -246,36 +246,37 @@ const Workspace = () => {
     const handleLabelDeleted = (labelId: number) => {
       console.log('Real-time label deleted:', labelId);
       setLabels(prev => prev.filter(l => l.id !== labelId))
-      
+
       // Retirer le label supprimé de tous les todos
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedSelectedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.labels && todo.labels.some(l => l.id === labelId)) {
               const updatedTodo = {
                 ...todo,
                 labels: todo.labels.filter(l => l.id !== labelId)
               }
-              
+
               // Check if this is the selected todo
               if (selectedTodo && selectedTodo.id === todo.id) {
                 updatedSelectedTodo = updatedTodo
               }
-              
+
               return updatedTodo
             }
             return todo
           })
         })
-        
+
         // Update selectedTodo if it was affected
         if (updatedSelectedTodo) {
           setSelectedTodo(updatedSelectedTodo)
         }
-        
+
         return newTodos
       })
     }
@@ -284,7 +285,7 @@ const Workspace = () => {
       console.log('Real-time label added to todo:', data);
       const todoId = parseInt(data.todoId.toString());
       const labelId = parseInt(data.labelId.toString());
-      
+
       // Utiliser une fonction qui accède aux labels actuels
       setLabels(currentLabels => {
         const label = currentLabels.find(l => l.id === labelId);
@@ -292,13 +293,14 @@ const Workspace = () => {
           console.log('Label not found:', labelId, 'Available labels:', currentLabels.map(l => l.id));
           return currentLabels;
         }
-        
+
         // Mettre à jour les todos avec le label trouvé
         setTodos(prev => {
           const newTodos = { ...prev }
           let updatedTodo = null;
-          
-          Object.keys(newTodos).forEach(listId => {
+
+          Object.keys(newTodos).forEach(key => {
+            const listId = Number(key);
             newTodos[listId] = newTodos[listId].map(todo => {
               if (todo.id === todoId) {
                 console.log('Found todo to update:', todo.id, 'Current labels:', todo.labels?.map(l => l.id));
@@ -317,15 +319,15 @@ const Workspace = () => {
               return todo
             })
           })
-          
+
           // Update selectedTodo if it's the same todo
           if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
             setSelectedTodo(updatedTodo)
           }
-          
+
           return newTodos
         })
-        
+
         return currentLabels;
       })
     }
@@ -334,12 +336,13 @@ const Workspace = () => {
       console.log('Real-time label removed from todo:', data);
       const todoId = parseInt(data.todoId.toString());
       const labelId = parseInt(data.labelId.toString());
-      
+
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.id === todoId && todo.labels) {
               updatedTodo = {
@@ -351,12 +354,12 @@ const Workspace = () => {
             return todo
           })
         })
-        
+
         // Update selectedTodo if it's the same todo
         if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
           setSelectedTodo(updatedTodo)
         }
-        
+
         return newTodos
       })
     }
@@ -364,16 +367,17 @@ const Workspace = () => {
     const handleTodoMemberAssigned = (data: { todoId: number | string; member: any }) => {
       console.log('Real-time member assigned to todo:', data);
       const todoId = parseInt(data.todoId.toString());
-      
+
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.id === todoId) {
               const currentMembers = todo.assigned_members || [];
-              if (!currentMembers.some(m => m.id === data.member.id)) {
+              if (!currentMembers.some((m: any) => m.id === data.member.id)) {
                 updatedTodo = {
                   ...todo,
                   assigned_members: [...currentMembers, data.member]
@@ -384,12 +388,12 @@ const Workspace = () => {
             return todo
           })
         })
-        
+
         // Update selectedTodo if it's the same todo
         if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
           setSelectedTodo(updatedTodo)
         }
-        
+
         return newTodos
       })
     }
@@ -398,29 +402,30 @@ const Workspace = () => {
       console.log('Real-time member unassigned from todo:', data);
       const todoId = parseInt(data.todoId.toString());
       const memberId = parseInt(data.memberId.toString());
-      
+
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.id === todoId && todo.assigned_members) {
               updatedTodo = {
                 ...todo,
-                assigned_members: todo.assigned_members.filter(m => m.id !== memberId)
+                assigned_members: todo.assigned_members.filter((m: any) => m.id !== memberId)
               }
               return updatedTodo
             }
             return todo
           })
         })
-        
+
         // Update selectedTodo if it's the same todo
         if (updatedTodo && selectedTodo && selectedTodo.id === todoId) {
           setSelectedTodo(updatedTodo)
         }
-        
+
         return newTodos
       })
     }
@@ -428,12 +433,13 @@ const Workspace = () => {
     const handleChecklistItemCreated = (data: { todoId: number | string; checklistItem: any; checklist_count: number; completed_checklist_count: number }) => {
       console.log('Real-time checklist item created:', data);
       const todoId = parseInt(data.todoId.toString());
-      
+
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.id === todoId) {
               updatedTodo = {
@@ -447,17 +453,17 @@ const Workspace = () => {
             return todo
           })
         })
-        
+
         // Update selectedTodo if it's the same todo - preserve all existing data
         if (selectedTodo && selectedTodo.id === todoId) {
-          setSelectedTodo(prev => ({
+          setSelectedTodo(prev => prev ? ({
             ...prev,
             checklist_count: data.checklist_count,
             completed_checklist_count: data.completed_checklist_count,
             checklist_items: prev.checklist_items ? [...prev.checklist_items, data.checklistItem] : [data.checklistItem]
-          }))
+          }) : null)
         }
-        
+
         return newTodos
       })
     }
@@ -465,20 +471,21 @@ const Workspace = () => {
     const handleChecklistItemUpdated = (data: { todoId: number | string; checklistItem: any; checklist_count: number; completed_checklist_count: number }) => {
       console.log('Real-time checklist item updated:', data);
       const todoId = parseInt(data.todoId.toString());
-      
+
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.id === todoId) {
               updatedTodo = {
                 ...todo,
                 checklist_count: data.checklist_count,
                 completed_checklist_count: data.completed_checklist_count,
-                checklist_items: todo.checklist_items ? 
-                  todo.checklist_items.map(item => 
+                checklist_items: todo.checklist_items ?
+                  todo.checklist_items.map((item: any) =>
                     item.id === data.checklistItem.id ? data.checklistItem : item
                   ) : [data.checklistItem]
               }
@@ -487,20 +494,20 @@ const Workspace = () => {
             return todo
           })
         })
-        
+
         // Update selectedTodo if it's the same todo - preserve all existing data
         if (selectedTodo && selectedTodo.id === todoId) {
-          setSelectedTodo(prev => ({
+          setSelectedTodo(prev => prev ? ({
             ...prev,
             checklist_count: data.checklist_count,
             completed_checklist_count: data.completed_checklist_count,
-            checklist_items: prev.checklist_items ? 
-              prev.checklist_items.map(item => 
+            checklist_items: prev.checklist_items ?
+              prev.checklist_items.map((item: any) =>
                 item.id === data.checklistItem.id ? data.checklistItem : item
               ) : [data.checklistItem]
-          }))
+          }) : null)
         }
-        
+
         return newTodos
       })
     }
@@ -509,38 +516,39 @@ const Workspace = () => {
       console.log('Real-time checklist item deleted:', data);
       const todoId = parseInt(data.todoId.toString());
       const itemId = parseInt(data.itemId.toString());
-      
+
       setTodos(prev => {
         const newTodos = { ...prev }
         let updatedTodo = null;
-        
-        Object.keys(newTodos).forEach(listId => {
+
+        Object.keys(newTodos).forEach(key => {
+          const listId = Number(key);
           newTodos[listId] = newTodos[listId].map(todo => {
             if (todo.id === todoId) {
               updatedTodo = {
                 ...todo,
                 checklist_count: data.checklist_count,
                 completed_checklist_count: data.completed_checklist_count,
-                checklist_items: todo.checklist_items ? 
-                  todo.checklist_items.filter(item => item.id !== itemId) : []
+                checklist_items: todo.checklist_items ?
+                  todo.checklist_items.filter((item: any) => item.id !== itemId) : []
               }
               return updatedTodo
             }
             return todo
           })
         })
-        
+
         // Update selectedTodo if it's the same todo - preserve all existing data
         if (selectedTodo && selectedTodo.id === todoId) {
-          setSelectedTodo(prev => ({
+          setSelectedTodo(prev => prev ? ({
             ...prev,
             checklist_count: data.checklist_count,
             completed_checklist_count: data.completed_checklist_count,
-            checklist_items: prev.checklist_items ? 
-              prev.checklist_items.filter(item => item.id !== itemId) : []
-          }))
+            checklist_items: prev.checklist_items ?
+              prev.checklist_items.filter((item: any) => item.id !== itemId) : []
+          }) : null)
         }
-        
+
         return newTodos
       })
     }
@@ -585,7 +593,7 @@ const Workspace = () => {
       socket.off('todo:checklist-item-created', handleChecklistItemCreated)
       socket.off('todo:checklist-item-updated', handleChecklistItemUpdated)
       socket.off('todo:checklist-item-deleted', handleChecklistItemDeleted)
-      
+
       leaveWorkspace(workspaceId)
     }
   }, [socket, id, isConnected])
@@ -593,9 +601,9 @@ const Workspace = () => {
   const fetchWorkspaceData = async () => {
     try {
       const token = localStorage.getItem('accessToken')
-      
+
       console.log('Fetching workspace data for ID:', id)
-      
+
       const [workspaceRes, listsRes, labelsRes] = await Promise.all([
         fetch(`/api/workspaces/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -614,11 +622,11 @@ const Workspace = () => {
         const labelsData = labelsRes.ok ? await labelsRes.json() : { labels: [] }
 
         setWorkspace(workspaceData.workspace)
-        setLists(listsData.lists.sort((a, b) => a.position - b.position))
+        setLists(listsData.lists.sort((a: any, b: any) => a.position - b.position))
         setLabels(labelsData.labels)
 
         const todosData: { [listId: number]: Todo[] } = {}
-        
+
         if (listsData.lists && listsData.lists.length > 0) {
           await Promise.all(
             listsData.lists.map(async (list: List) => {
@@ -638,7 +646,7 @@ const Workspace = () => {
             })
           )
         }
-        
+
         setTodos({ ...todosData })
       } else if (workspaceRes.status === 403) {
         setError('Accès refusé à ce workspace')
@@ -658,7 +666,7 @@ const Workspace = () => {
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsCreatingList(true)
-    
+
     try {
       const token = localStorage.getItem('accessToken')
       const response = await fetch('/api/lists', {
@@ -727,7 +735,7 @@ const Workspace = () => {
           position: todos[listId] ? todos[listId].length : 0
         })
       })
-      
+
       if (response.ok) {
         await fetchWorkspaceData()
       } else {
@@ -815,7 +823,7 @@ const Workspace = () => {
   const handleUpdateTodosOrder = async (listId: number, reorderedTodos: Todo[]) => {
     try {
       const token = localStorage.getItem('accessToken')
-      
+
       // Créer le payload avec les nouvelles positions
       const todosWithNewPositions = reorderedTodos.map((todo, index) => ({
         id: todo.id,
@@ -852,7 +860,7 @@ const Workspace = () => {
       const response = await fetch(`/api/todos/${todo.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         const detailedTodo = {
@@ -890,7 +898,7 @@ const Workspace = () => {
         const response = await fetch(`/api/todos/${selectedTodo.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           const detailedTodo = {
@@ -945,7 +953,7 @@ const Workspace = () => {
     try {
       console.log('Request payload:', JSON.stringify({ lists: newOrder }, null, 2))
       console.log('Token from context:', token)
-      
+
       const response = await fetch('/api/lists/positions', {
         method: 'PUT',
         headers: {
@@ -993,16 +1001,16 @@ const Workspace = () => {
             workspace={workspace}
             onAddMember={handleAddMember}
             onSettings={handleSettings}
-            onManageLabels={() => {}}
+            onManageLabels={() => { }}
           />
 
           <OnlineUsers />
 
           <main className="workspace-main">
             {error && (
-              <AlertMessage 
-                type="error" 
-                message={error} 
+              <AlertMessage
+                type="error"
+                message={error}
                 onClose={() => setError('')}
               />
             )}
@@ -1015,7 +1023,7 @@ const Workspace = () => {
                     list={list}
                     todos={todos[list.id] || []}
                     labels={labels}
-                    onCreateTodo={(title) => handleCreateTodo(list.id, title)}
+                    onCreateTodo={(title: string) => handleCreateTodo(list.id, title)}
                     onEditTodo={handleOpenCardDetails}
                     onChecklistClick={handleOpenCardDetailsWithChecklist}
                     onDeleteTodo={handleDeleteTodo}
@@ -1024,20 +1032,20 @@ const Workspace = () => {
                     onListNameUpdated={fetchWorkspaceData}
                     globalExpandedLabels={globalExpandedLabels}
                     setGlobalExpandedLabels={setGlobalExpandedLabels}
-                    onUpdateTodosOrder={(reorderedTodos) => handleUpdateTodosOrder(list.id, reorderedTodos)}
+                    onUpdateTodosOrder={(reorderedTodos: Todo[]) => handleUpdateTodosOrder(list.id, reorderedTodos)}
                     index={idx}
                     moveList={moveList}
                   />
                 ))}
-                
+
                 <div className="create-list-column">
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     onClick={() => setShowCreateListModal(true)}
                     className="create-list-button"
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                     Add another list
                   </Button>
@@ -1062,17 +1070,17 @@ const Workspace = () => {
                 placeholder="Enter list title..."
                 required
               />
-              
+
               <div className="modal-actions">
-                <Button 
-                  type="button" 
-                  variant="secondary" 
+                <Button
+                  type="button"
+                  variant="secondary"
                   onClick={() => setShowCreateListModal(false)}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   variant="primary"
                   disabled={isCreatingList}
                 >
@@ -1085,7 +1093,7 @@ const Workspace = () => {
           <CardDetailsModal
             isOpen={showCardDetailsModal}
             onClose={handleCloseCardDetails}
-            todo={selectedTodo}
+            todo={selectedTodo as any}
             onUpdate={handleUpdateTodo}
             labels={labels}
             members={workspace.members}

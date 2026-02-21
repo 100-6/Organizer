@@ -31,7 +31,7 @@ export const useWebSocket = ({
 }: WebSocketHookOptions) => {
   const ws = useRef<WebSocket | null>(null)
   const reconnectAttempts = useRef(0)
-  const reconnectTimeoutId = useRef<NodeJS.Timeout | null>(null)
+  const reconnectTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isManuallyClosedRef = useRef(false)
 
   const connect = useCallback(() => {
@@ -43,9 +43,9 @@ export const useWebSocket = ({
 
       const token = localStorage.getItem('accessToken')
       const wsUrl = `${url}?token=${token}&workspaceId=${workspaceId}`
-      
+
       ws.current = new WebSocket(wsUrl)
-      
+
       ws.current.onopen = () => {
         console.log('WebSocket connected for workspace:', workspaceId)
         reconnectAttempts.current = 0
@@ -64,12 +64,12 @@ export const useWebSocket = ({
       ws.current.onclose = (event) => {
         console.log('WebSocket disconnected:', event.code, event.reason)
         onDisconnect?.()
-        
+
         // Only attempt to reconnect if not manually closed and under attempt limit
         if (!isManuallyClosedRef.current && reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++
           console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})...`)
-          
+
           reconnectTimeoutId.current = setTimeout(() => {
             connect()
           }, reconnectInterval)
@@ -88,12 +88,12 @@ export const useWebSocket = ({
 
   const disconnect = useCallback(() => {
     isManuallyClosedRef.current = true
-    
+
     if (reconnectTimeoutId.current) {
       clearTimeout(reconnectTimeoutId.current)
       reconnectTimeoutId.current = null
     }
-    
+
     if (ws.current) {
       ws.current.close()
       ws.current = null
@@ -110,7 +110,7 @@ export const useWebSocket = ({
 
   const getConnectionState = useCallback(() => {
     if (!ws.current) return 'DISCONNECTED'
-    
+
     switch (ws.current.readyState) {
       case WebSocket.CONNECTING:
         return 'CONNECTING'

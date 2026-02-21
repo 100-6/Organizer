@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
-import { useWebSocket } from '../hooks/useWebSocket'
 
 // Types
 interface Todo {
@@ -66,7 +65,7 @@ interface WorkspaceData {
 }
 
 // Actions
-type WorkspaceAction = 
+type WorkspaceAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_WORKSPACE_DATA'; payload: Omit<WorkspaceData, 'isLoading' | 'error'> }
@@ -92,10 +91,10 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
       return { ...state, error: action.payload }
 
     case 'SET_WORKSPACE_DATA':
-      return { 
-        ...action.payload, 
-        isLoading: false, 
-        error: null 
+      return {
+        ...action.payload,
+        isLoading: false,
+        error: null
       }
 
     case 'ADD_LIST': {
@@ -112,7 +111,7 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
         ...state,
         lists: state.lists.map(list => ({
           ...list,
-          todos: list.todos.map(todo => 
+          todos: list.todos.map(todo =>
             todo.id === todoId ? { ...todo, ...updates } : todo
           )
         }))
@@ -126,7 +125,7 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
         lists: state.lists.map(list => ({
           ...list,
           todos: list.todos.map(todo =>
-            todo.id === todoId 
+            todo.id === todoId
               ? { ...todo, labels: [...todo.labels.filter(l => l.id !== label.id), label] }
               : todo
           )
@@ -141,7 +140,7 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
         lists: state.lists.map(list => ({
           ...list,
           todos: list.todos.map(todo =>
-            todo.id === todoId 
+            todo.id === todoId
               ? { ...todo, labels: todo.labels.filter(l => l.id !== labelId) }
               : todo
           )
@@ -156,7 +155,7 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
         lists: state.lists.map(list => ({
           ...list,
           todos: list.todos.map(todo =>
-            todo.id === todoId 
+            todo.id === todoId
               ? { ...todo, assigned_to: member.id, assigned_username: member.username }
               : todo
           )
@@ -171,7 +170,7 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
         lists: state.lists.map(list => ({
           ...list,
           todos: list.todos.map(todo =>
-            todo.id === todoId 
+            todo.id === todoId
               ? { ...todo, assigned_to: null, assigned_username: null }
               : todo
           )
@@ -191,7 +190,7 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
                 item.id === itemId ? { ...item, ...updates } : item
               )
               const completedCount = updatedItems.filter(item => item.is_completed).length
-              
+
               return {
                 ...todo,
                 checklist_items: updatedItems,
@@ -251,7 +250,7 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
 
     case 'MOVE_TODO': {
       const { todoId, targetListId, newPosition } = action.payload
-      
+
       // Find and remove the todo from its current list
       let todoToMove: Todo | null = null
       const listsWithoutTodo = state.lists.map(list => ({
@@ -284,71 +283,71 @@ const workspaceReducer = (state: WorkspaceData, action: WorkspaceAction): Worksp
 
     case 'WEBSOCKET_UPDATE': {
       const { type: updateType, data } = action.payload
-      
+
       switch (updateType) {
         case 'TODO_UPDATED':
           return {
             ...state,
             lists: state.lists.map(list => ({
               ...list,
-              todos: list.todos.map(todo => 
+              todos: list.todos.map(todo =>
                 todo.id === data.todoId ? { ...todo, ...data.updates } : todo
               )
             }))
           }
-          
+
         case 'LABEL_ADDED_TO_TODO':
           return {
             ...state,
             lists: state.lists.map(list => ({
               ...list,
               todos: list.todos.map(todo =>
-                todo.id === data.todoId 
+                todo.id === data.todoId
                   ? { ...todo, labels: [...todo.labels.filter(l => l.id !== data.label.id), data.label] }
                   : todo
               )
             }))
           }
-          
+
         case 'LABEL_REMOVED_FROM_TODO':
           return {
             ...state,
             lists: state.lists.map(list => ({
               ...list,
               todos: list.todos.map(todo =>
-                todo.id === data.todoId 
+                todo.id === data.todoId
                   ? { ...todo, labels: todo.labels.filter(l => l.id !== data.labelId) }
                   : todo
               )
             }))
           }
-          
+
         case 'MEMBER_ASSIGNED_TO_TODO':
           return {
             ...state,
             lists: state.lists.map(list => ({
               ...list,
               todos: list.todos.map(todo =>
-                todo.id === data.todoId 
+                todo.id === data.todoId
                   ? { ...todo, assigned_to: data.member.id, assigned_username: data.member.username }
                   : todo
               )
             }))
           }
-          
+
         case 'MEMBER_REMOVED_FROM_TODO':
           return {
             ...state,
             lists: state.lists.map(list => ({
               ...list,
               todos: list.todos.map(todo =>
-                todo.id === data.todoId 
+                todo.id === data.todoId
                   ? { ...todo, assigned_to: null, assigned_username: null }
                   : todo
               )
             }))
           }
-          
+
         default:
           return state
       }
@@ -413,7 +412,7 @@ export const WorkspaceDataProvider: React.FC<{ children: React.ReactNode; worksp
       }
 
       const data = await response.json()
-      
+
       dispatch({
         type: 'SET_WORKSPACE_DATA',
         payload: {
@@ -465,7 +464,7 @@ export const WorkspaceDataProvider: React.FC<{ children: React.ReactNode; worksp
           created_at: data.list.created_at,
           todos: []
         }
-        
+
         // Add the new list to state
         dispatch({ type: 'ADD_LIST', payload: { list: newList } })
       } else {
@@ -599,7 +598,7 @@ export const WorkspaceDataProvider: React.FC<{ children: React.ReactNode; worksp
 
   const removeMemberFromTodo = useCallback(async (todoId: number, memberId: number) => {
     const member = state.members.find(m => m.id === memberId)
-    
+
     // Optimistic update
     dispatch({ type: 'REMOVE_MEMBER_FROM_TODO', payload: { todoId, memberId } })
 

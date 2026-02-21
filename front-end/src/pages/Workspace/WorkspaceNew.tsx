@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { useParams } from 'react-router-dom'
 import { WorkspaceDataProvider, useWorkspaceData } from '../../contexts/WorkspaceDataContext'
-import { 
-  LoadingSpinner, 
-  AlertMessage, 
-  Button, 
-  Modal, 
+import {
+  LoadingSpinner,
+  AlertMessage,
+  Button,
+  Modal,
   FormInput,
   ErrorBoundary
 } from '../../components'
@@ -19,24 +18,15 @@ import './Workspace.css'
 
 const WorkspaceContent = () => {
   const { id } = useParams<{ id: string }>()
-  const { logout } = useAuth()
-  const navigate = useNavigate()
   const { state, actions } = useWorkspaceData()
-  
+
   const [selectedTodoId, setSelectedTodoId] = useState<number | null>(null)
   const [showCreateListModal, setShowCreateListModal] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [isCreatingList, setIsCreatingList] = useState(false)
   const [labelsExpanded, setLabelsExpanded] = useState(false)
 
-  const handleLogout = async () => {
-    try {
-      await logout()
-      navigate('/')
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
-  }
+
 
   const handleCardClick = (todoId: number) => {
     setSelectedTodoId(todoId)
@@ -93,7 +83,7 @@ const WorkspaceContent = () => {
   const moveCard = async (dragIndex: number, hoverIndex: number, sourceListId: number, targetListId: number) => {
     const sourceList = state.lists.find(list => list.id === sourceListId)
     const targetList = state.lists.find(list => list.id === targetListId)
-    
+
     if (!sourceList || !targetList) return
 
     const todoToMove = sourceList.todos[dragIndex]
@@ -112,11 +102,11 @@ const WorkspaceContent = () => {
   }
 
   // Get the selected todo for modal
-  const selectedTodo = selectedTodoId 
+  const selectedTodo = selectedTodoId
     ? state.lists.flatMap(list => list.todos).find(todo => todo.id === selectedTodoId)
     : null
 
-  const selectedTodoListName = selectedTodo 
+  const selectedTodoListName = selectedTodo
     ? state.lists.find(list => list.id === selectedTodo.list_id)?.name || 'Unknown List'
     : ''
 
@@ -127,15 +117,15 @@ const WorkspaceContent = () => {
   if (state.error) {
     return (
       <div className="workspace-error">
-        <AlertMessage 
-          type="error" 
+        <AlertMessage
+          type="error"
           message={state.error}
-          action={
-            <Button variant="primary" onClick={() => actions.loadWorkspace(id!)}>
-              Retry
-            </Button>
-          }
         />
+        <div style={{ marginTop: '16px' }}>
+          <Button variant="primary" onClick={() => actions.loadWorkspace(id!)}>
+            Retry
+          </Button>
+        </div>
       </div>
     )
   }
@@ -144,10 +134,10 @@ const WorkspaceContent = () => {
     <div className="workspace-page">
       <header className="workspace-header-container">
         <WorkspaceHeader
-          workspaceName={state.name}
-          workspaceDescription={state.description}
-          members={state.members}
-          onLogout={handleLogout}
+          workspace={state as any}
+          onAddMember={() => { }}
+          onSettings={() => { }}
+          onManageLabels={() => { }}
         />
       </header>
 
@@ -168,14 +158,14 @@ const WorkspaceContent = () => {
                   setLabelsExpanded={setLabelsExpanded}
                 />
               ))}
-              
+
               <div className="add-list-column">
-                <button 
+                <button
                   className="add-list-button"
                   onClick={() => setShowCreateListModal(true)}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                   Add a list
                 </button>
@@ -212,19 +202,18 @@ const WorkspaceContent = () => {
             onChange={(e) => setNewListName(e.target.value)}
             placeholder="Enter list name..."
             required
-            autoFocus
           />
-          
+
           <div className="modal-actions">
-            <Button 
-              type="button" 
-              variant="secondary" 
+            <Button
+              type="button"
+              variant="secondary"
               onClick={() => setShowCreateListModal(false)}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               variant="primary"
               disabled={isCreatingList || !newListName.trim()}
             >
@@ -239,7 +228,7 @@ const WorkspaceContent = () => {
 
 const Workspace = () => {
   const { id } = useParams<{ id: string }>()
-  
+
   if (!id) {
     return (
       <div className="workspace-error">

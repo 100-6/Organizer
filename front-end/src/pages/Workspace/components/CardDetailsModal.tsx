@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
 import LabelMenu from './LabelMenu'
-import Checklist from './Checklist'
 import { useSocket } from '../../../contexts/SocketContext'
 import './CardDetailsModal.css'
 
@@ -90,7 +89,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       setDescription(todo.description || '')
       setCurrentTodoLabels(todo.labels || [])
       setCurrentChecklistItems(todo.checklist_items || [])
-      
+
       // Ne réinitialiser l'état de la checklist qu'au premier chargement
       if (!checklistInitialized) {
         setChecklistExpanded(openChecklistByDefault)
@@ -129,7 +128,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       console.log('Modal: Received todo:label-added', data)
       const todoId = typeof data.todoId === 'string' ? parseInt(data.todoId) : data.todoId
       if (!todo || todoId !== todo.id) return
-      
+
       const label = labels.find(l => l.id === data.labelId)
       if (label) {
         console.log('Modal: Found label to add:', label)
@@ -150,24 +149,24 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     const handleLabelRemoved = (data: { todoId: number | string; labelId: number }) => {
       console.log('Modal: Received todo:label-removed', data)
       const todoId = typeof data.todoId === 'string' ? parseInt(data.todoId) : data.todoId
-      if (!todo || todoId !== todo.id)  return
-      
+      if (!todo || todoId !== todo.id) return
+
       setCurrentTodoLabels(prev => prev.filter(l => l.id !== data.labelId))
     }
 
     // Label updated event for rename functionality
     const handleLabelUpdated = (updatedLabel: Label) => {
       console.log('Modal: Received label:updated', updatedLabel)
-      
+
       // Vérifier que l'objet label existe et a un ID
       if (!updatedLabel || !updatedLabel.id) {
         console.error('Modal: Invalid label data received:', updatedLabel)
         return
       }
-      
+
       // Update the label in currentTodoLabels if it exists
-      setCurrentTodoLabels(prev => 
-        prev.map(label => 
+      setCurrentTodoLabels(prev =>
+        prev.map(label =>
           label.id === updatedLabel.id ? updatedLabel : label
         )
       )
@@ -177,16 +176,16 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     const handleChecklistItemCreated = (data: { todoId: number; checklistItem: ChecklistItem }) => {
       console.log('Modal: Received todo:checklist-item-created', data)
       if (!todo || data.todoId !== todo.id) return
-      
+
       setCurrentChecklistItems(prev => [...prev, data.checklistItem])
     }
 
     const handleChecklistItemUpdated = (data: { todoId: number; checklistItem: ChecklistItem }) => {
       console.log('Modal: Received todo:checklist-item-updated', data)
       if (!todo || data.todoId !== todo.id) return
-      
-      setCurrentChecklistItems(prev => 
-        prev.map(item => 
+
+      setCurrentChecklistItems(prev =>
+        prev.map(item =>
           item.id === data.checklistItem.id ? data.checklistItem : item
         )
       )
@@ -195,7 +194,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     const handleChecklistItemDeleted = (data: { todoId: number; checklistItemId: number }) => {
       console.log('Modal: Received todo:checklist-item-deleted', data)
       if (!todo || data.todoId !== todo.id) return
-      
+
       setCurrentChecklistItems(prev => prev.filter(item => item.id !== data.checklistItemId))
     }
 
@@ -203,7 +202,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     const handleMemberAssigned = (data: { todoId: number; userId: number; user: any }) => {
       console.log('Modal: Received todo:member-assigned', data)
       if (!todo || data.todoId !== todo.id) return
-      
+
       // This will trigger a re-render and the assigned members will be updated via props
       onLabelsUpdated()
     }
@@ -211,7 +210,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     const handleMemberUnassigned = (data: { todoId: number; userId: number }) => {
       console.log('Modal: Received todo:member-unassigned', data)
       if (!todo || data.todoId !== todo.id) return
-      
+
       // This will trigger a re-render and the assigned members will be updated via props
       onLabelsUpdated()
     }
@@ -266,7 +265,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ labelId })
       })
-      
+
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:label-added'
@@ -284,7 +283,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      
+
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:label-removed'
@@ -310,7 +309,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ title, position: currentChecklistItems.length })
       })
-      
+
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-created'
@@ -332,7 +331,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ is_completed: completed })
       })
-      
+
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-updated'
@@ -354,7 +353,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ title })
       })
-      
+
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-updated'
@@ -372,7 +371,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      
+
       if (response.ok) {
         // Ne pas mettre à jour l'état local, laisser Socket.io le faire
         // Le backend émet déjà l'événement 'todo:checklist-item-deleted'
@@ -384,6 +383,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
   }
 
 
+  // @ts-expect-error unused
   const handleAssignMember = async (member: Member) => {
     try {
       const token = localStorage.getItem('accessToken')
@@ -395,7 +395,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ assignedTo: member.id })
       })
-      
+
       if (response.ok) {
         setShowMemberMenu(false)
         // onLabelsUpdated() est maintenant géré par les listeners Socket.io
@@ -416,7 +416,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ assignedTo: null })
       })
-      
+
       if (response.ok) {
         // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
@@ -436,7 +436,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         },
         body: JSON.stringify({ userId: member.id })
       })
-      
+
       if (response.ok) {
         // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
@@ -452,7 +452,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      
+
       if (response.ok) {
         // onLabelsUpdated() est maintenant géré par les listeners Socket.io
       }
@@ -469,11 +469,11 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
 
   const getChecklistColor = () => {
     if (!currentChecklistItems || currentChecklistItems.length === 0) return '#6b7280' // gris
-    
+
     const completedCount = currentChecklistItems.filter(item => item.is_completed).length
     const totalCount = currentChecklistItems.length
     const percentage = (completedCount / totalCount) * 100
-    
+
     if (percentage === 0) return '#6b7280' // gris
     if (percentage < 25) return '#ef4444' // rouge
     if (percentage < 50) return '#f59e0b' // jaune
@@ -486,7 +486,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
       <div className="card-details-modal" onClick={(e) => e.stopPropagation()}>
         <button className="card-details-close" onClick={onClose}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
 
@@ -494,8 +494,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
           <div className="card-details-title-section">
             <div className="card-details-title-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
-                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2" />
+                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" />
               </svg>
             </div>
             <div className="card-details-title-container">
@@ -529,8 +529,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
               <div className="card-section-header">
                 <div className="card-section-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2"/>
-                    <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2" />
+                    <circle cx="7" cy="7" r="1.5" fill="currentColor" />
                   </svg>
                 </div>
                 <h3 className="card-section-title">Labels</h3>
@@ -557,7 +557,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                   }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </button>
               </div>
@@ -568,11 +568,11 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
               <div className="card-section-header">
                 <div className="card-section-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2"/>
-                    <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2"/>
-                    <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2"/>
-                    <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2"/>
-                    <polyline points="10,9 9,9 8,9" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2" />
+                    <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2" />
+                    <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2" />
+                    <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2" />
+                    <polyline points="10,9 9,9 8,9" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </div>
                 <h3 className="card-section-title">Description</h3>
@@ -597,31 +597,31 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div className="card-section-icon" style={{ color: getChecklistColor() }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2" />
                       </svg>
                     </div>
                     <h3 className="card-section-title">Checklist</h3>
                   </div>
                   <div className="checklist-summary">
                     <button className="checklist-expand-button">
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
                         fill="none"
                         style={{ transform: checklistExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                       >
-                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="checklist-progress-bar">
-                  <div 
+                  <div
                     className="checklist-progress-fill"
-                    style={{ 
+                    style={{
                       width: `${getChecklistProgress()}%`,
                       backgroundColor: getChecklistColor()
                     }}
@@ -644,35 +644,35 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                           value={item.title}
                           onChange={(e) => {
                             // Mettre à jour l'état local immédiatement pour la saisie
-                            setCurrentChecklistItems(prev => 
-                              prev.map(i => 
+                            setCurrentChecklistItems(prev =>
+                              prev.map(i =>
                                 i.id === item.id ? { ...i, title: e.target.value } : i
                               )
                             )
                           }}
                           onBlur={(e) => handleUpdateChecklistItem(item.id, e.target.value)}
-                          style={{ 
+                          style={{
                             textDecoration: item.is_completed ? 'line-through' : 'none',
                             opacity: item.is_completed ? 0.6 : 1
                           }}
                         />
-                        <button 
+                        <button
                           className="checklist-item-delete"
                           onClick={() => handleDeleteChecklistItem(item.id)}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" />
                           </svg>
                         </button>
                       </div>
                     ))}
-                    
-                    <button 
+
+                    <button
                       className="add-checklist-item-button"
                       onClick={() => handleAddChecklistItem('New item')}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
                       Add an item
                     </button>
@@ -686,8 +686,8 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                 <div className="card-section-header">
                   <div className="card-section-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
                     </svg>
                   </div>
                   <h3 className="card-section-title">Membres assignés</h3>
@@ -700,18 +700,18 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                         {todo.assigned_username?.charAt(0).toUpperCase()}
                       </div>
                       <span className="member-name">{todo.assigned_username}</span>
-                      <button 
+                      <button
                         className="remove-assignment"
                         onClick={handleRemoveMember}
                         title="Retirer ce membre"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" />
                         </svg>
                       </button>
                     </div>
                   )}
-                  
+
                   {/* Multiple assignments */}
                   {todo.assigned_members && todo.assigned_members.map(member => (
                     <div key={member.id} className="assigned-member-item">
@@ -719,13 +719,13 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                         {member.username.charAt(0).toUpperCase()}
                       </div>
                       <span className="member-name">{member.username}</span>
-                      <button 
+                      <button
                         className="remove-assignment"
                         onClick={() => handleRemoveMultipleMember(member.id)}
                         title="Retirer ce membre"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" />
                         </svg>
                       </button>
                     </div>
@@ -738,7 +738,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
           <div className="card-details-sidebar">
             <div className="sidebar-section">
               <div className="sidebar-section-title">Add to card</div>
-              <button 
+              <button
                 className="sidebar-button"
                 onClick={() => {
                   setEditingLabel(null)
@@ -746,46 +746,46 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                 }}
               >
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2"/>
-                  <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="7" cy="7" r="1.5" fill="currentColor" />
                 </svg>
                 Labels
               </button>
-              <button 
+              <button
                 className="sidebar-button"
                 onClick={() => {
                   handleAddChecklistItem('New item')
                 }}
               >
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" />
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.67 0 3.22.46 4.56 1.25" stroke="currentColor" strokeWidth="2" />
                 </svg>
                 Checklist
               </button>
               <button className="sidebar-button">
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
-                  <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
-                  <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" />
+                  <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" />
+                  <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" />
                 </svg>
                 Dates
               </button>
-              <button 
+              <button
                 className="sidebar-button"
                 onClick={() => setShowMemberMenu(true)}
               >
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2"/>
-                  <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+                  <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2" />
                 </svg>
                 Members
               </button>
               <button className="sidebar-button">
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" strokeWidth="2" />
                 </svg>
                 Attachment
               </button>
@@ -795,15 +795,15 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
               <div className="sidebar-section-title">Actions</div>
               <button className="sidebar-button">
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2"/>
-                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" strokeWidth="2" />
                 </svg>
                 Copy
               </button>
               <button className="sidebar-button">
                 <svg className="sidebar-button-icon" viewBox="0 0 24 24" fill="none">
-                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" strokeWidth="2"/>
+                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" />
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" strokeWidth="2" />
                 </svg>
                 Archive
               </button>
@@ -835,17 +835,17 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                 <h3>Gérer les membres</h3>
                 <button onClick={() => setShowMemberMenu(false)} className="close-button">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </button>
               </div>
               <div className="member-menu-content">
                 {members.map(member => {
-                  const isAssigned = todo.assigned_to === member.id || 
+                  const isAssigned = todo.assigned_to === member.id ||
                     (todo.assigned_members && todo.assigned_members.some(m => m.id === member.id))
-                  
+
                   return (
-                    <div 
+                    <div
                       key={member.id}
                       className={`member-option ${isAssigned ? 'member-option--selected' : ''}`}
                       onClick={() => {
@@ -870,7 +870,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                       {isAssigned && (
                         <div className="member-option-check">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2"/>
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" />
                           </svg>
                         </div>
                       )}
@@ -879,12 +879,12 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                 })}
                 {todo.assigned_to && (
                   <div className="member-menu-unassign">
-                    <button 
+                    <button
                       className="unassign-button"
                       onClick={handleRemoveMember}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" />
                       </svg>
                       Retirer l'assignation
                     </button>
