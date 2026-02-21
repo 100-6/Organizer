@@ -15,8 +15,7 @@ L'application a été conçue autour de trois piliers fondamentaux : Clarté, R�
 - Expérience Fluide : Utilisation intensive du Drag and Drop pour une gestion intuitive des tâches.
 - Collaboration Instantanée : Un retour visuel immédiat grâce aux WebSockets pour visualiser les membres en ligne et les modifications en direct.
 
-> [ PLACEHOLDER : Insère ici une capture d'écran du Dashboard principal ]
-> ![Dashboard Screenshot](https://via.placeholder.com/800x450?text=Dashboard+Principal)
+![Dashboard Screenshot](./assets/Acceuil.png)
 
 ---
 
@@ -25,7 +24,9 @@ L'application a été conçue autour de trois piliers fondamentaux : Clarté, R�
 ### Gestion de Workspace
 - Création d'espaces de travail dédiés par projet ou par équipe.
 - Gestion des membres et invitations par email.
-- [ SCREENSHOT : Gestion d'équipe / Invitations ]
+![Invitation Sending Screenshot](./assets/Inivtation%20sending.png)
+
+![Invitation Received Screenshot](./assets/Invitation%20received.png)
 
 ### Tableaux et Listes
 - Organisation des tâches en colonnes personnalisables.
@@ -40,7 +41,7 @@ L'application a été conçue autour de trois piliers fondamentaux : Clarté, R�
 ### Détails des Cartes
 - Checklists intégrées pour suivre l'avancement précis.
 - Descriptions détaillées et assignation de membres.
-- [ SCREENSHOT : Modal de détails d'une carte ]
+![Card Details Screenshot](./assets/Card%20modal%20details.png)
 
 ---
 
@@ -84,25 +85,9 @@ npm install
 npm run dev
 ```
 
----
-
-## Galerie de Captures d'Écran
-
-### Vue d'ensemble du Workspace
-> [ PLACEHOLDER : Capture d'un Workspace complet ]
-> ![Workspace View](https://via.placeholder.com/800x450?text=Vue+du+Workspace)
-
-### Système de Labels et Organisation
-> [ PLACEHOLDER : Capture montrant les filtres ou les labels ]
-> ![Labels View](https://via.placeholder.com/800x450?text=Organisation+par+Labels)
-
----
-
 ## Sécurité
 - Hashage des mots de passe via Bcrypt.
 - Protection des routes par Middlewares d'authentification.
 - Validation rigoureuse des données entrantes.
 
 ---
-
-Développé par [Ton Nom/Pseudo]
